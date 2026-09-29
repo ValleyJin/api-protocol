@@ -1,0 +1,13 @@
+# 이 저장소는 표준 라이브러리만으로 돌아가는 것을 기본으로 삼는다.
+# 아래는 특정 실습에서만 쓰는 선택 패키지다. 필요할 때만 깔면 된다.
+
+# 05-api-layers/05-grpc-api — gRPC 실습에만 필요하다. 유일하게 대안이 없다.
+grpcio>=1.60
+grpcio-tools>=1.60
+
+# 04-application/mqtt, 05-api-layers/02-library-api — 직접 만든 구현과 견주는 용도다.
+# 없어도 실습은 돌아간다. 이 저장소가 MQTT 브로커와 클라이언트를 직접 구현해 두었다.
+paho-mqtt>=2.0
+
+# 05-api-layers/02-library-api — 표준 라이브러리 http.client와 견주는 용도다.
+requests>=2.31

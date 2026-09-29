@@ -1,0 +1,41 @@
+// gRPC는 API를 글이 아니라 파일로 정의한다. 이 파일 하나가 계약서다.
+//
+// REST는 "GET /sensors/living-room 하면 JSON이 온다"를 문서에 적어 두고
+// 사람이 읽어 맞춘다. gRPC는 이 .proto 에서 서버 코드와 클라이언트 코드를
+// 함께 만들어 낸다. 그래서 필드 이름을 틀리면 실행 전에 걸린다.
+//
+// 자료는 JSON이 아니라 protobuf로 적는다. 필드 이름을 선에 싣지 않고 번호만
+// 싣기 때문에 훨씬 짧다. 아래 = 1, = 2 가 그 번호다. 번호는 한 번 정하면
+// 바꾸지 않는다. 예전 클라이언트가 그 번호로 읽기 때문이다.
+
+syntax = "proto3";
+
+package sensor;
+
+message SensorId {
+  string id = 1;
+}
+
+message Reading {
+  string id = 1;
+  double temperature = 2;
+  string unit = 3;
+  double ts = 4;
+}
+
+message SetRequest {
+  string id = 1;
+  double temperature = 2;
+}
+
+service SensorService {
+  // 한 번 묻고 한 번 받는다. REST의 GET에 해당한다.
+  rpc Get(SensorId) returns (Reading);
+
+  // 값을 올린다. REST의 PUT에 해당한다.
+  rpc Set(SetRequest) returns (Reading);
+
+  // 서버가 값을 계속 밀어 준다. REST에는 이런 것이 없다.
+  // WebSocket으로 직접 짜야 했던 일을 여기서는 한 줄로 선언한다.
+  rpc Watch(SensorId) returns (stream Reading);
+}

@@ -1,24 +1,143 @@
 # 03. 전송 계층과 소켓 API (3층)
 
-## 목표
-소켓 API만으로 서버와 클라이언트를 직접 짠다. 라이브러리 없이 스택을 손으로 만지는 단계다.
+## 무엇을 배우는가
 
-## 다루는 것
-TCP, UDP, 포트, 3-way handshake, 소켓 API
+IP는 기기까지 데려다준다. 그 기기 안에서 어느 프로그램에게 줄지는 정해 주지 않는다. 전송 계층이 그 일을 한다. **포트 번호**가 프로그램을 가리키는 주소다.
 
-## 만들 것
-- TCP 에코 서버 (`socket` → `bind` → `listen` → `accept` → `recv`/`send` → `close`)
-- TCP 클라이언트 (`socket` → `connect` → `send`/`recv` → `close`)
-- UDP 송신기 (`socket` → `sendto`)와 수신기 (`socket` → `bind` → `recvfrom`)
-- 같은 서버를 블로킹 방식과 `select` 방식으로 각각 구현해 견주기
+이 계층에는 성격이 정반대인 프로토콜 둘이 있다.
 
-## 확인하는 법
-1. 서버를 띄운 뒤 `sudo tcpdump`로 3-way handshake(SYN, SYN-ACK, ACK)를 잡는다. 서버와 클라이언트를 한 기기에서 돌리면 트래픽이 루프백으로만 흐르니 macOS는 `-i lo0`, 리눅스는 `-i lo`를 붙인다.
-2. 연결을 끊고 4-way close(FIN, ACK, FIN, ACK)까지 잡는다. 받는 쪽이 FIN과 ACK를 한 세그먼트로 묶으면 3개만 잡히기도 한다.
-3. UDP로 같은 데이터를 보내고 핸드셰이크가 없다는 것을 캡처로 확인한다.
-4. `netstat -an` 또는 `ss -tan`으로 소켓 상태(LISTEN, ESTABLISHED, TIME_WAIT)를 본다.
+| | TCP | UDP |
+|---|---|---|
+| 연결 | 맺는다 (3-way handshake) | 안 맺는다 |
+| 도착 보장 | 한다 (재전송) | 안 한다 |
+| 순서 보장 | 한다 | 안 한다 |
+| 경계 | 없다 (바이트 흐름) | 있다 (데이터그램) |
+| 헤더 | 20바이트 이상 | 8바이트 |
+| 쓰는 곳 | HTTP, MQTT | DNS, CoAP, 영상 통화 |
 
-## 메모
-UDP 송신기에는 `bind`가 필요 없다. `sendto`를 부르면 커널이 임시 포트를 알아서 붙인다.
+### 바이트 흐름이라는 말의 뜻
 
-여기서 만든 코드가 `05-api-layers`의 출발점이 된다. 같은 기능을 더 높은 계층의 API로 다시 짜서 견줄 것이므로 지우지 않는다.
+TCP를 처음 쓸 때 가장 많이 걸리는 곳이다. `send()`를 세 번 했다고 상대의 `recv()`가 세 번 나뉘어 오지 않는다. TCP가 보기에 우리가 보낸 것은 그저 이어진 바이트 줄이다. 어디서 끊어 읽을지는 **위 계층이 스스로 정해야 한다.**
+
+`tcp_echo_client.py --stream`으로 직접 만들어 볼 수 있다.
+
+04 폴더의 프로토콜들이 이 문제를 저마다 다르게 푼다.
+
+- HTTP: 빈 줄 하나로 헤더 끝을 알리고, `Content-Length`로 본문 길이를 적는다
+- MQTT: 패킷 앞에 '남은 길이'를 적는다
+- 우리가 05에서 만들 소켓 API: 줄바꿈으로 끊는다
+
+**UDP에는 이 문제가 없다.** 보낸 덩어리가 그대로 하나씩 온다. 대신 오다가 사라져도 아무도 모른다.
+
+### 소켓 API — 스택을 부르는 창구
+
+운영체제는 1층부터 3층까지를 이미 구현해 두었다. 우리는 그 엔진을 **소켓 API**라는 손잡이로 부린다. 함수 호출 순서가 곧 TCP가 연결을 맺는 순서와 맞물린다.
+
+```
+서버                              클라이언트
+socket()                          socket()
+bind()      포트를 붙인다
+listen()    받겠다고 알린다
+                    ◀── SYN ───   connect()
+                    ─ SYN+ACK ─▶
+                    ◀── ACK ───
+accept()    연결 하나를 꺼낸다
+recv()      ◀────── 데이터 ────   send()
+send()      ─────── 데이터 ────▶  recv()
+close()     ◀────── FIN ──────    close()
+```
+
+`accept()`가 돌려주는 소켓은 처음 만든 소켓과 다른 물건이다. 처음 것은 계속 문 앞에서 손님을 받고, 새 것이 그 손님 한 명과 이야기한다.
+
+**UDP에는 `listen()`과 `accept()`가 없다.** 맺을 연결이 없으니 받을 것도 없다. 받는 쪽은 `bind()`로 포트를 잡고 `recvfrom()`으로 기다린다. `recv()`가 아니라 `recvfrom()`인 까닭은, 연결이 없어 소켓만 봐서는 상대가 누군지 알 수 없기 때문이다. **보내는 쪽에는 `bind()`도 필요 없다.** `sendto()`를 부르면 커널이 남는 포트를 알아서 붙인다.
+
+## 파일
+
+| 파일 | 하는 일 |
+|---|---|
+| `tcp_echo_server.py` | 소켓 API만으로 만든 TCP 서버. 한 번에 한 연결 |
+| `tcp_echo_client.py` | TCP 클라이언트. `--stream`으로 경계 문제를 보여 준다 |
+| `tcp_select_server.py` | 같은 서버를 `select()`로 다시 짠다. 여러 연결을 한꺼번에 |
+| `udp_receiver.py` | UDP 수신기 |
+| `udp_sender.py` | UDP 송신기. `--check`, `--burst` 옵션이 있다 |
+| `parse_tcp.py` | 캡처에서 TCP 헤더와 연결 흐름을 읽는다 |
+
+## 실습
+
+### 1. TCP 에코를 돌린다
+
+```
+python3 tcp_echo_server.py            # 창 하나
+python3 tcp_echo_client.py 안녕       # 다른 창
+```
+
+서버가 뜬 채로 `netstat -an | grep 9000`(리눅스는 `ss -tan`)을 돌려 상태가 `LISTEN`인 것을 본다. 클라이언트가 붙어 있는 동안에는 `ESTABLISHED`가, 끊은 뒤에는 `TIME_WAIT`이 보인다.
+
+### 2. 바이트 흐름을 확인한다
+
+```
+python3 tcp_echo_client.py --stream
+```
+
+`send()`를 세 번 했는데 `recv()`가 한 번에 받는다. 이것이 "TCP는 메시지 경계를 지켜 주지 않는다"는 말의 실제 모습이다.
+
+### 3. 핸드셰이크를 잡는다
+
+```
+sudo tcpdump -i lo0 -w samples/tcp.pcap port 9000 &    # 리눅스는 -i lo
+python3 tcp_echo_client.py 안녕
+sleep 1 && sudo pkill tcpdump
+python3 parse_tcp.py samples/tcp.pcap
+```
+
+서버와 클라이언트를 한 기기에서 돌리면 트래픽이 루프백으로만 흐른다. `-i en0`을 잡으면 한 건도 안 잡힌다.
+
+종료가 4개가 아니라 3개로 잡히는 일이 흔하다. 받는 쪽이 FIN과 ACK를 한 세그먼트에 묶기 때문이다. 캡처가 잘못된 것이 아니다.
+
+TCP 헤더가 20이 아니라 32로 나오는 것도 확인한다. 타임스탬프 옵션이 붙어서다. 06 폴더에서 오버헤드를 셀 때 이 값을 20으로 고정하면 계산이 어긋난다.
+
+### 4. UDP와 견준다
+
+```
+python3 udp_receiver.py               # 창 하나
+python3 udp_sender.py "안녕"          # 다른 창
+python3 udp_sender.py --check         # 받는 쪽 없이 보내 본다
+python3 udp_sender.py --burst 1000    # 몰아 보내 유실을 본다
+```
+
+`--check`는 아무도 없는 포트로 보낸다. 오류가 나지 않는다. TCP였다면 `connect()`에서 바로 거절당했을 것이다.
+
+`--burst`는 수신기가 몇 개를 받았는지 세어 보게 한다. 루프백에서는 대개 다 오지만, 개수를 크게 올리면 커널 버퍼가 넘쳐 사라지기 시작한다.
+
+### 5. 한 연결과 여러 연결
+
+```
+python3 tcp_echo_server.py            # 창 하나
+python3 tcp_echo_client.py A          # 창 둘, 셋에서 동시에
+python3 tcp_echo_client.py B
+```
+
+둘째 클라이언트가 기다린다. 서버가 한 번에 한 연결만 다루기 때문이다. `tcp_select_server.py`로 바꿔 띄우면 동시에 처리한다.
+
+`select()`는 "이 소켓들 가운데 지금 읽을 것이 있는 소켓을 알려 달라"고 커널에 묻는 함수다. asyncio나 웹 프레임워크가 안쪽에 감춰 둔 것이 이 되풀이다.
+
+## 직접 확인할 것
+
+- **TIME_WAIT은 왜 남는가.** 클라이언트를 끊고 `netstat -an`을 보면 소켓이 한동안 `TIME_WAIT`으로 남는다. 늦게 도착한 세그먼트가 다음 연결에 끼어들지 않게 하는 장치다. 서버 코드의 `SO_REUSEADDR`이 이것 때문에 필요하다.
+- **임시 포트.** 클라이언트를 여러 번 돌리며 내 쪽 포트 번호가 어떻게 변하는지 본다.
+- **순서 번호.** `parse_tcp.py`로 SYN의 순서 번호를 본다. 0이 아니라 무작위 값에서 시작한다. 예측되면 남이 끼어들 수 있기 때문이다.
+
+## 자주 막히는 곳
+
+| 증상 | 까닭 |
+|---|---|
+| `Address already in use` | 앞 연결이 `TIME_WAIT`으로 포트를 쥐고 있다. `SO_REUSEADDR`을 켠다 |
+| 캡처에 아무것도 안 잡힌다 | 같은 기기끼리면 `-i lo0`(리눅스 `-i lo`)을 잡아야 한다 |
+| 둘째 클라이언트가 멈춰 있다 | 기본 서버는 한 번에 한 연결만 다룬다. `tcp_select_server.py`를 쓴다 |
+| UDP를 보냈는데 아무 일도 안 난다 | 정상이다. UDP는 상대가 있는지 확인하지 않는다 |
+
+## 다음
+
+여기서 만든 코드가 [05-api-layers](../05-api-layers/)의 저수준 구현으로 이어진다. 같은 기능을 더 높은 계층의 API로 다시 짜서 견줄 것이므로 지우지 않는다.
+
+먼저 이 바이트 흐름 위에 사람들이 무엇을 얹었는지 본다. [04-application](../04-application/)으로 간다.

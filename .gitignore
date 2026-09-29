@@ -58,3 +58,9 @@ tmp/
 # ── macOS ──────────────────────────────────────────────
 .DS_Store
 .AppleDouble
+
+# ── 실습 중 생기는 것 ───────────────────────────────────
+01-link-layer/samples/
+02-internet-layer/samples/
+03-transport-socket/samples/
+04-application/*/samples/
