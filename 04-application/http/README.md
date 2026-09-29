@@ -2,7 +2,7 @@
 
 ## 무엇을 배우는가
 
-HTTP/1.1은 TCP 위에 얹힌 **텍스트 규약**이다. 이 말이 과장이 아니라는 것을 소켓으로 직접 확인한다. 우리가 보내는 것은 그저 아래 글자들이다.
+HTTP/1.1은 TCP 위에 얹힌 **텍스트 규약**이다. 이 말이 과장이 아니라는 것을 소켓으로 직접 확인한다. 보내는 것은 그저 아래 글자다.
 
 ```
 GET /path HTTP/1.1␍␊
@@ -55,7 +55,7 @@ curl -X PUT -d '{"temperature":22.5}' localhost:8080/sensors/living-room/tempera
 python3 lib_client.py --port 8080 127.0.0.1 /sensors/living-room/temperature
 ```
 
-코드 줄 수는 줄고 선 위를 흐르는 바이트는 늘어난다. `requests`가 `User-Agent`, `Accept-Encoding`을 알아서 붙이기 때문이다. 내가 적지 않은 바이트가 흐른다.
+코드 줄 수는 줄고 실제로 오가는 바이트는 늘어난다. `requests`가 `User-Agent`, `Accept-Encoding`을 알아서 붙이기 때문이다. 내가 적지 않은 바이트가 흐른다.
 
 ### 4. Keep-Alive를 켜고 끈다
 

@@ -3,7 +3,7 @@
 
 raw_client.py는 요청 문자열을 손으로 적었다. 여기서는 http.client(표준
 라이브러리)와 requests(외부 패키지)로 같은 일을 한다. 코드는 짧아지고
-선 위를 흐르는 바이트는 늘어난다. 라이브러리가 헤더를 알아서 붙이기 때문이다.
+실제로 오가는 바이트는 늘어난다. 라이브러리가 헤더를 알아서 붙이기 때문이다.
 
 이것이 05 폴더에서 계층별로 견줄 내용의 맛보기다. 계층을 올리면 편해지는
 대신 무엇이 오가는지 안 보이게 된다.
@@ -72,7 +72,7 @@ def main():
         status, headers, body, elapsed = result
         print(f"상태 {status}, 본문 {len(body)}바이트, {elapsed:.1f}ms")
         print("한 줄이면 된다. 대신 요청에 User-Agent, Accept-Encoding, Connection 헤더를")
-        print("알아서 붙인다. 내가 안 적은 바이트가 선 위를 흐른다는 뜻이다.")
+        print("알아서 붙인다. 내가 안 적은 바이트가 실제로 오간다는 뜻이다.")
     print()
 
     print("견줄 것")

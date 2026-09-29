@@ -115,6 +115,7 @@ python3 subscriber.py --persist --qos 1            # 다시 붙으면 24.0이 �
 ### 5. 캡처를 떠서 바이트를 센다
 
 ```
+mkdir -p samples
 sudo tcpdump -i lo0 -w samples/mqtt.pcap port 1883 &
 python3 broker.py &
 python3 publisher.py 23.5 --retain --qos 1
@@ -130,7 +131,7 @@ python3 parse_mqtt.py samples/mqtt.pcap
 pip install paho-mqtt
 ```
 
-직접 만든 구현과 같은 브로커에 붙는다. 코드가 얼마나 줄고, 선 위 바이트는 같은지 캡처로 확인한다.
+직접 만든 구현과 같은 브로커에 붙는다. 코드가 얼마나 줄고, 실제로 오가는 바이트는 같은지 캡처로 확인한다.
 
 ## 실제로 재어 본 값
 

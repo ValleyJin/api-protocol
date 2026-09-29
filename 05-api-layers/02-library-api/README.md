@@ -27,7 +27,7 @@ python3 client.py
 3. requests      요청 약 175바이트    내 코드가 1가지 일을 했다
 ```
 
-계층을 올릴수록 **코드는 줄고 선 위를 흐르는 바이트는 늘어난다.** `requests`가 `User-Agent`, `Accept-Encoding`, `Accept`, `Connection` 헤더를 알아서 붙이기 때문이다. 내가 적지 않은 바이트가 흐른다.
+계층을 올릴수록 **코드는 줄고 실제로 오가는 바이트는 늘어난다.** `requests`가 `User-Agent`, `Accept-Encoding`, `Accept`, `Connection` 헤더를 알아서 붙이기 때문이다. 내가 적지 않은 바이트가 흐른다.
 
 ## 어느 쪽이 맞는가
 

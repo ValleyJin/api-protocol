@@ -67,7 +67,7 @@ def handle(conn, addr, verbose):
     with conn:
         conn.settimeout(5)
         raw = b""
-        # 헤더가 다 올 때까지 읽는다. TCP는 경계를 안 지켜 주니 우리가 찾아야 한다.
+        # 헤더가 다 올 때까지 읽는다. TCP는 경계를 안 지켜 주니 직접 찾아야 한다.
         while b"\r\n\r\n" not in raw:
             chunk = conn.recv(4096)
             if not chunk:

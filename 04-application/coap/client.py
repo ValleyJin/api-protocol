@@ -4,7 +4,7 @@
 TCP가 없으니 "답이 안 오면 다시 보낸다"를 애플리케이션이 해야 한다. RFC 7252는
 첫 대기 2초에서 시작해 갑절씩 늘리며 최대 4번 다시 보내라고 정한다. 아래
 send_confirmable()이 그것이다. 03 폴더에서 TCP가 대신 해 주던 일을, 여기서는
-우리가 적는다.
+여기서는 직접 적는다.
 
     python3 client.py get
     python3 client.py put 23.5

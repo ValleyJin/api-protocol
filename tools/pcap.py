@@ -93,7 +93,7 @@ class PcapFile:
     def __iter__(self):
         """(타임스탬프, 잡은 바이트, 원래 길이)를 차례로 돌려준다.
 
-        incl_len은 실제로 파일에 담긴 길이이고 orig_len은 선 위에 있던
+        incl_len은 실제로 파일에 담긴 길이이고 orig_len은 네트워크에 실제로 흐른
         원래 길이다. snaplen을 짧게 걸고 잡으면 둘이 달라진다.
         """
         hdr_fmt = self.endian + "IIII"
