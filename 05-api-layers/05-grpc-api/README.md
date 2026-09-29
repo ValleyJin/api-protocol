@@ -35,7 +35,7 @@ JSON      70바이트: {"id":"living-room","temperature":21.0,"unit":"C","ts":17
 
 ### 스트리밍이 선언 하나다
 
-`04-application/websocket`에서 프레임을 손으로 만들며 했던 일을, 여기서는 `stream` 한 단어로 선언하고 `yield` 한 줄로 구현한다.
+`04-application/websocket`에서는 프레임을 손으로 만들어야 했다. 여기서는 `stream` 한 단어로 선언하고 `yield` 한 줄로 구현한다.
 
 ## 준비
 
