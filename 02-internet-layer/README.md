@@ -17,4 +17,4 @@ IP, ICMP, 라우팅
 3. 같은 목적지에 여러 번 `traceroute`를 돌려 경로가 바뀌는지 본다.
 
 ## 메모
-`SOCK_RAW`로 ICMP를 직접 만들려면 관리자 권한이 필요하다. macOS는 `SOCK_DGRAM`과 `IPPROTO_ICMP`로 권한 없이 Echo를 주고받는다. 리눅스는 `net.ipv4.ping_group_range` 설정에 따라 갈린다.
+`SOCK_RAW`로 ICMP를 직접 만들려면 관리자 권한이 필요하다. macOS는 `SOCK_DGRAM`과 `IPPROTO_ICMP`로 권한 없이 Echo를 주고받는다. 리눅스는 `net.ipv4.ping_group_range` 설정에 따라 되기도 하고 안 되기도 한다.

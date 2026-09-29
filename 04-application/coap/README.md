@@ -10,5 +10,5 @@
 
 ## 확인하는 법
 1. GET 한 번에 오가는 바이트 수를 HTTP 버전과 견준다.
-2. 서버를 내리거나 ACK를 막아 둔 채, Confirmable은 재전송하고 Non-confirmable은 재전송하지 않는 것을 확인한다.
-3. 순서가 뒤바뀌거나 유실되는 상황을 일부러 만든다. 리눅스는 `tc qdisc add dev lo root netem loss 30% delay 50ms reorder 25%`를 걸고, macOS는 `dnctl`과 `pfctl`로 파이프를 건다. 도구가 없으면 클라이언트 코드에서 보내는 패킷을 확률로 버린다.
+2. 서버가 ACK를 보내지 않게 막거나 응답이 없는 주소로 메시지를 보낸 뒤, Confirmable은 재전송하고 Non-confirmable은 재전송하지 않는 것을 확인한다.
+3. 패킷 순서가 뒤바뀌거나 패킷이 사라지는 상황을 일부러 만든다. macOS는 `dnctl`과 `pfctl`로 파이프를 걸고, 리눅스는 `sudo tc qdisc add dev lo root netem loss 30% delay 50ms reorder 25%`를 건다. 어느 쪽이든 관리자 권한이 필요하다. 도구가 없으면 클라이언트 코드에서 보내는 패킷을 일정 확률로 버린다.

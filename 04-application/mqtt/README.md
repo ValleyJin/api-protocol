@@ -11,5 +11,5 @@
 ## 확인하는 법
 1. 브로커(Mosquitto 등)를 띄우고 구독자를 먼저 연결한다.
 2. 발행자가 값을 올리면 구독자가 받는지 확인한다.
-3. 구독자를 껐다가 값을 올린 뒤 다시 켠다. retain과 clean session이 어떻게 달라지는지 본다. retain은 발행할 때 retain 플래그를 켜야 남는다. clean session을 견주려면 구독자가 고정 client id로 `clean_session=False`를 걸고 QoS 1 이상으로 구독해야 한다. `paho-mqtt` 기본값(QoS 0, clean session 켬)으로는 둘 다 빈손으로 나온다.
+3. 구독자를 껐다가 값을 올린 뒤 다시 켜고, retain과 clean session에 따라 결과가 어떻게 달라지는지 본다. retain은 발행할 때 플래그를 켜야 남는다. clean session은 구독자가 고정 client id로 `clean_session=False`를 걸고 QoS 1 이상으로 구독해야 한다. 발행자도 QoS 1 이상으로 올려야 메시지가 남는다. `paho-mqtt` 기본값(`retain=False`, QoS 0, clean session 켬)으로는 두 경우 모두 아무것도 받지 못한다.
 4. 캡처로 PUBLISH 패킷 한 건의 실제 바이트 수를 잰다.
