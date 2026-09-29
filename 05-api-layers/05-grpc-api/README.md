@@ -2,7 +2,7 @@
 
 ## 무엇을 배우는가
 
-앞의 네 가지와 결정적으로 다른 점은 **내가 규약을 적지 않는다**는 것이다. `sensor.proto`가 계약서다.
+앞의 네 가지와 결정적으로 다른 점은 **내가 프로토콜을 적지 않는다**는 것이다. `sensor.proto`가 계약서다.
 
 ```protobuf
 service SensorService {
@@ -25,11 +25,11 @@ service SensorService {
 ### protobuf — 필드 이름을 싣지 않는다
 
 ```
-protobuf  34바이트: b'\n\x0bliving-room\x11\x00\x00\x00\x00\x00\x005@\x1a\x01C!}\x03\x95\x87\xe8\xae\xdaA'
-JSON      73바이트: {"id":"living-room","temperature":21.0,"unit":"C","ts":1790681630.328338}
+protobuf  34바이트: b'\n\x0bliving-room\x11\x00\x00\x00\x00\x00\x005@\x1a\x01C!\xf0\xa7\x86\xe0\xf1\xae\xdaA'
+JSON      70바이트: {"id":"living-room","temperature":21.0,"unit":"C","ts":1790691202.104}
 ```
 
-53% 줄었다. `temperature`라는 글자 대신 `.proto`에 적힌 번호 `2`만 싣기 때문이다. 받는 쪽도 같은 `.proto`를 갖고 있어야 `2`가 temperature임을 안다. **그래서 사람이 읽을 수 없다.**
+51% 줄었다. `temperature`라는 글자 대신 `.proto`에 적힌 번호 `2`만 싣기 때문이다. 받는 쪽도 같은 `.proto`를 갖고 있어야 `2`가 temperature임을 안다. **그래서 사람이 읽을 수 없다.**
 
 필드 번호는 한 번 정하면 바꾸지 않는다. 예전 클라이언트가 그 번호로 읽기 때문이다. 필드를 지울 때도 번호를 재사용하지 않고 `reserved`로 막아 둔다.
 
@@ -53,14 +53,14 @@ pip install grpcio grpcio-tools
 
 ### 판본이 맞아야 한다
 
-생성 코드와 실행 시 라이브러리의 판본이 어긋나면 임포트 자체가 막힌다. 실제로 겪는 오류가 이렇게 생긴다.
+생성 코드의 판본과 실행할 때 쓰는 라이브러리의 판본이 어긋나면 임포트부터 막힌다. 실제로 이런 오류가 뜬다.
 
 ```
 gencode 7.35.1 runtime 6.33.6 — Runtime version cannot be older than the linked gencode version
 The grpc package installed is at version 1.81.0, but the generated code depends on grpcio>=1.81.1
 ```
 
-`grpcio-tools`의 판본을 설치된 `grpcio` 이하로 맞추면 풀린다. 이것은 이 저장소의 문제가 아니라 **코드 생성 방식이 원래 떠안는 짐**이다. REST에는 없던 일이다. 계약서를 코드로 굳혀 얻는 타입 안전의 값이다.
+`grpcio-tools`의 판본을 설치된 `grpcio` 이하로 맞추면 풀린다. 이것은 이 저장소의 문제가 아니라 **코드 생성 방식이 원래 떠안는 짐**이다. REST에는 없던 일이고, 계약서를 코드로 굳혀 타입 안전을 얻는 대가다.
 
 ## 실습
 
@@ -86,6 +86,6 @@ python3 client.py watch               # 서버가 밀어 주는 값을 받는다
 
 ## 직접 확인할 것
 
-- **필드를 하나 더해 본다.** `.proto`에 `double humidity = 5;`를 넣고 `./generate.sh`를 돌린다. 서버만 고치고 클라이언트를 그대로 두면 어떻게 되는지 본다. 필드를 더하는 것은 대개 안전하다.
-- **번호를 바꿔 본다.** `temperature = 2`를 `= 6`으로 바꾸고 서버만 다시 만든다. 클라이언트가 값을 못 읽는다. 번호를 바꾸지 말라는 말의 뜻이 여기서 드러난다.
+- **필드를 하나 더해 본다.** 서버를 띄워 둔 채 `.proto`에 `double humidity = 5;`를 넣고 `./generate.sh`를 돌린다. 이미 뜬 서버는 예전 생성 코드를 들고 있으니, 새로 만든 코드로 클라이언트만 다시 돌려 본다. 필드를 더하는 것은 대개 안전하다.
+- **번호를 바꿔 본다.** 서버를 띄워 둔 채 `temperature = 2`를 `= 6`으로 바꾸고 `./generate.sh`를 돌린다. 예전 번호로 보내는 서버와 새 번호로 읽는 클라이언트가 어긋나, 온도가 기본값 0.0으로 나온다. 번호를 바꾸지 말라는 말의 뜻이 여기서 드러난다.
 - **캡처를 떠 본다.** `sudo tcpdump -i lo0 -A -c 20 port 9400`. REST에서는 글자가 읽혔지만 여기서는 아무것도 못 읽는다.

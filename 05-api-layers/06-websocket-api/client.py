@@ -128,7 +128,7 @@ def main():
             print(f"get() → {message['result']['temperature']}"
                   f"{message['result']['unit']}")
             print(f"  요청 프레임 {sent}바이트, 응답 프레임 {got}바이트")
-            print(f"  REST의 GET은 요청 78 + 응답 227 정도였다. 프레임이 훨씬 짧다.")
+            print(f"  REST의 GET은 요청 78 + 응답 243 정도였다. 프레임이 훨씬 짧다.")
             print(f"  대신 핸드셰이크 {client.handshake_bytes}바이트를 미리 냈다.")
             print(f"  요청 {client.handshake_bytes // (sent + got)}번쯤부터 이득이 난다.")
 
