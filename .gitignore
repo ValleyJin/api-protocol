@@ -1,0 +1,60 @@
+# ── 패킷 캡처 ───────────────────────────────────────────
+# 캡처 파일은 용량이 크고 실제 네트워크 정보가 담긴다. 올리지 않는다.
+*.pcap
+*.pcapng
+captures/
+
+# ── 비밀값 ──────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# ── Python ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node.js ────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+
+# ── C / C++ ────────────────────────────────────────────
+*.o
+*.a
+*.so
+*.dylib
+*.out
+a.out
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# ── 로그와 임시 파일 ────────────────────────────────────
+*.log
+logs/
+tmp/
+*.tmp
+
+# ── 에디터 ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── macOS ──────────────────────────────────────────────
+.DS_Store
+.AppleDouble
