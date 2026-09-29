@@ -102,7 +102,9 @@ def main():
             print("답이 없다. NON은 여기서 끝이다. 잃어버려도 아무도 모른다.")
         else:
             print(f"{coap.MAX_RETRANSMIT}번 다시 보냈지만 답이 없다. 포기한다.")
-            print("서버가 --drop-ack 로 떠 있으면 이것이 정상이다.")
+            print("서버가 --drop-ack 로 떠 있거나 아예 없으면 이것이 정상이다.")
+            print("이 소켓은 connect() 하지 않아 ICMP port unreachable을 받지 않는다.")
+            print("그래서 서버가 없어도 끝까지 다시 보낸다.")
         return 1
 
     reply = coap.decode(data)

@@ -2,7 +2,7 @@
 
 ## 무엇을 배우는가
 
-HTTP/1.1은 TCP 위에 얹힌 **텍스트 규약**이다. 이 말이 과장이 아니라는 것을 소켓으로 직접 확인한다. 보내는 것은 그저 아래 글자다.
+HTTP/1.1은 TCP 위에 얹힌 **텍스트 프로토콜**이다. 이 말이 과장이 아니라는 것을 소켓으로 직접 확인한다. 보내는 것은 그저 아래 글자다.
 
 ```
 GET /path HTTP/1.1␍␊
@@ -13,7 +13,7 @@ Connection: close␍␊
 
 줄 끝은 `\r\n`이고, **빈 줄 하나가 헤더의 끝**을 알린다. 03 폴더에서 본 대로 TCP는 메시지 경계를 지켜 주지 않으니, HTTP가 빈 줄로 경계를 스스로 정한 것이다. 본문 길이는 `Content-Length` 헤더가 알려 준다.
 
-HTTP/2는 이 텍스트를 바이너리 프레임으로 바꿨고, HTTP/3은 TCP 대신 UDP 위 QUIC에서 돈다. 여기서 확인하는 것은 HTTP/1.1이다.
+HTTP/2는 이 텍스트를 바이너리 프레임으로 바꿨고, HTTP/3은 TCP 대신 UDP 위 QUIC에서 돈다. 여기서는 HTTP/1.1을 확인한다.
 
 ## 파일
 
@@ -25,7 +25,7 @@ HTTP/2는 이 텍스트를 바이너리 프레임으로 바꿨고, HTTP/3은 TCP
 
 ## 만들 것
 
-- 소켓으로 HTTP 요청 문자열을 직접 써서 보내는 최소 클라이언트
+- 라이브러리를 전혀 쓰지 않고 요청 줄과 헤더만 조립해 응답을 받아 내는 최소 클라이언트
 - 요청 줄과 헤더를 파싱해 응답하는 최소 서버
 - 같은 일을 `http.client`(표준 라이브러리)나 `requests`(외부 패키지)로 다시 구현
 
@@ -47,7 +47,7 @@ python3 raw_client.py --port 8080 127.0.0.1 /sensors/living-room/temperature
 curl -X PUT -d '{"temperature":22.5}' localhost:8080/sensors/living-room/temperature
 ```
 
-서버 코드에서 눈여겨볼 곳은 `\r\n\r\n`을 찾을 때까지 읽는 부분과, `Content-Length`만큼 본문이 다 왔는지 확인하는 부분이다. 프레임워크를 쓰면 안 보이는 일이다.
+서버 코드에서 눈여겨볼 곳은 `\r\n\r\n`을 찾을 때까지 읽는 부분과 `Content-Length`만큼 본문이 다 왔는지 확인하는 부분이다. 프레임워크를 쓰면 안 보이는 일이다.
 
 ### 3. 라이브러리와 견준다
 
@@ -59,7 +59,7 @@ python3 lib_client.py --port 8080 127.0.0.1 /sensors/living-room/temperature
 
 ### 4. Keep-Alive를 켜고 끈다
 
-`Connection: close`를 빼고 같은 연결로 두 번 요청해 본다. 캡처를 뜨면 핸드셰이크가 한 번만 일어나는 것이 보인다.
+`raw_client.py`는 `Connection: close`를 늘 붙이고 `minimal_server.py`도 응답마다 연결을 닫는다. 두 파일에서 그 헤더를 빼고 같은 연결로 두 번 요청하도록 고쳐 보면, 캡처에서 핸드셰이크가 한 번만 일어나는 것이 보인다.
 
 ```
 sudo tcpdump -i lo0 -A -c 20 port 8080
@@ -75,4 +75,4 @@ sudo tcpdump -i lo0 -A -c 20 port 8080
 |---|---|
 | 응답이 안 끝나고 멈춰 있다 | `Connection: close`를 안 보냈다. 서버가 더 올 줄 알고 기다린다 |
 | 한글이 깨져 보인다 | `Content-Type`에 `charset=utf-8`이 없거나 터미널 인코딩 문제다 |
-| 서버가 400을 돌려준다 | 헤더 끝의 빈 줄을 안 보냈을 수 있다. `\r\n\r\n`이 필요하다 |
+| 서버가 400을 돌려준다 | 첫 줄이 `GET /경로 HTTP/1.1` 세 토막이 아니다. 빈 줄을 안 보냈을 때는 400 대신 답이 아예 안 온다 |

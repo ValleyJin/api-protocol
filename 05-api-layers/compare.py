@@ -164,7 +164,10 @@ def probe_sdk(port):
     client = SensorClient(f"http://127.0.0.1:{port}")
     def once():
         client.get()
-        return 77      # REST 서버의 본문 크기와 같다
+        # SDK는 REST 서버를 그대로 부르므로 본문 크기가 REST와 같아야 한다.
+        # 짐작하지 않고 실제로 한 번 더 받아 세어 둔다.
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/sensors/living-room", timeout=3) as r:
+            return len(r.read())
     return measure(once)
 
 

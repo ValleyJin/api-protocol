@@ -15,7 +15,7 @@ import threading
 import time
 
 _LOCK = threading.Lock()
-_STATE = {"sensor": "living-room", "temperature": 21.0, "unit": "C", "ts": time.time()}
+_STATE = {"sensor": "living-room", "temperature": 21.0, "unit": "C", "ts": round(time.time(), 3)}
 
 
 def get():
@@ -26,7 +26,7 @@ def get():
 def set_value(value: float):
     with _LOCK:
         _STATE["temperature"] = round(float(value), 1)
-        _STATE["ts"] = time.time()
+        _STATE["ts"] = round(time.time(), 3)   # 자릿수를 고정해 측정값이 흔들리지 않게 한다
         return dict(_STATE)
 
 
