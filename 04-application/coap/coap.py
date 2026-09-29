@@ -51,7 +51,9 @@ OPT_CONTENT_FORMAT = 12
 CONTENT_TEXT, CONTENT_JSON = 0, 50
 
 MAX_RETRANSMIT = 4      # RFC 7252가 정한 기본값
-ACK_TIMEOUT = 2.0       # 첫 재전송까지 기다리는 초
+ACK_TIMEOUT = 2.0       # 첫 재전송까지 기다리는 초. RFC는 여기에 ACK_RANDOM_FACTOR 1.5를
+                        # 곱해 2~3초 사이에서 무작위로 고르라고 한다. 눈으로 따라가기
+                        # 쉽게 2초로 고정했다.
 
 
 def code_name(code):

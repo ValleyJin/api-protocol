@@ -124,4 +124,4 @@ gRPC        reading = stub.Get(sensor_id)   # 타입까지 .proto가 정한다
 
 [`03-transport-socket`](../03-transport-socket/)에서 만든 코드가 `01-socket-api`의 출발점이다.
 
-이 폴더에서는 그 조작 핸들을 여덟 번 바꿔 잡아 본다.
+이 폴더에서는 스택에 달아 놓은 조작 핸들을 여덟 번 바꿔 잡아 본다.
