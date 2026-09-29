@@ -154,11 +154,11 @@ def main():
     print(f"3층. 전송 — TCP, {tcp_hlen}바이트")
     print(annotate(seg, [("출발지 포트", 0, 2), ("목적지 포트", 2, 2),
                          ("순서 번호", 4, 4), ("확인 번호", 8, 4),
-                         ("옵셋+플래그", 12, 2), ("윈도 크기", 14, 2)]))
+                         ("오프셋+플래그", 12, 2), ("윈도 크기", 14, 2)]))
     print(f"      포트 {sport} → {dport}, 플래그 {'+'.join(names) or '-'}")
     if tcp_hlen > 20:
         print(f"      옵션이 {tcp_hlen - 20}바이트 붙어 있다. 그래서 20이 아니라 {tcp_hlen}이다.")
-        print("      20으로 고정해 세면 계산이 어긋난다. 데이터 옵셋 필드를 읽어야 한다.")
+        print("      20으로 고정해 세면 계산이 어긋난다. 데이터 오프셋 필드를 읽어야 한다.")
     if args.hex:
         print(hexdump(seg[:tcp_hlen], offset=link_len + ihl))
     print(f"      벗기면 남는 것: {len(payload)}바이트")
