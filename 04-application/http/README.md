@@ -37,7 +37,7 @@ HTTP/2는 이 텍스트를 바이너리 프레임으로 바꿨고, HTTP/3은 TCP
 python3 raw_client.py example.com /
 ```
 
-보낸 글자와 받은 글자를 그대로 찍는다. 응답 헤더가 본문보다 클 때가 많다는 것을 확인한다.
+보낸 글자와 받은 글자를 그대로 찍는다. 값 하나를 받는 것도 아닌데 응답 헤더만으로 수백 바이트가 나가는 것을 확인한다. 헤더가 본문보다 커지는 쪽은 센서 값 하나만 돌려주는 2번 서버다.
 
 ### 2. 서버까지 직접 만든다
 
@@ -59,7 +59,7 @@ python3 lib_client.py --port 8080 127.0.0.1 /sensors/living-room/temperature
 
 ### 4. Keep-Alive를 켜고 끈다
 
-`raw_client.py`는 `Connection: close`를 늘 붙이고 `minimal_server.py`도 응답마다 연결을 닫는다. 두 파일에서 그 헤더를 빼고 같은 연결로 두 번 요청하도록 고쳐 보면, 캡처에서 핸드셰이크가 한 번만 일어나는 것이 보인다.
+`raw_client.py`는 `Connection: close`를 늘 붙이고 `minimal_server.py`도 응답마다 연결을 닫는다. 두 파일에서 그 헤더를 빼고, 연결이 닫히기를 기다리는 대신 `Content-Length`만큼만 읽도록 고친 뒤 같은 연결로 두 번 요청해 보면, 캡처에서 핸드셰이크가 한 번만 일어나는 것이 보인다. 헤더만 빼면 `raw_client.py`가 응답을 다 받고도 연결이 닫히기를 기다리다 시간 초과로 끝난다.
 
 ```
 sudo tcpdump -i lo0 -A -c 20 port 8080

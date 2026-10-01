@@ -36,7 +36,7 @@ TCP가 없으니 언제 몇 번 다시 보낼지를 CoAP가 스스로 정해야 
 
 경로나 콘텐츠 형식 같은 부가 정보를 옵션으로 적는다. 옵션 번호를 그대로 적지 않고 **앞 옵션과의 차이(델타)**만 적는다. 번호가 오름차순이어야 하는 까닭이다.
 
-경로가 `/a/b`면 Uri-Path 옵션(번호 11)을 두 번 적는다. 두 번째는 델타가 0이라 옵션 번호를 다시 적지 않는다. 옵션 헤더는 델타와 길이를 4비트씩 담아 한 바이트로 끝난다. 여기서도 바이트를 아끼려는 설계가 보인다.
+경로가 `/a/b`면 Uri-Path 옵션(번호 11)을 두 번 적는다. 두 번째는 델타가 0이라 옵션 번호를 다시 적지 않는다. 옵션 헤더는 델타와 길이를 4비트씩 담아, 둘 다 12를 넘지 않으면 한 바이트로 끝난다. 13 이상이면 뒤에 바이트를 더 붙인다. 여기서도 바이트를 아끼려는 설계가 보인다.
 
 ## 파일
 
@@ -97,9 +97,12 @@ python3 client.py get --non
 루프백에서는 저절로 일어나지 않는다. 도구로 만들어야 한다. 어느 쪽이든 관리자 권한이 필요하다.
 
 ```
-# macOS
+# macOS (pf는 기본으로 꺼져 있다. 켜지 않으면 규칙이 아무 일도 하지 않는다)
 sudo dnctl pipe 1 config plr 0.3 delay 50
 sudo pfctl -f - <<< "dummynet in proto udp from any to any port 5683 pipe 1"
+sudo pfctl -E
+# 끝나면 되돌린다
+sudo pfctl -d && sudo dnctl -q flush
 
 # 리눅스
 sudo tc qdisc add dev lo root netem loss 30% delay 50ms reorder 25%

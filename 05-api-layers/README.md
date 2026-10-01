@@ -39,7 +39,7 @@ get()          최근 센서 값을 읽는다
 set(value)     값을 올린다
 ```
 
-이 둘뿐이다. 자료는 [`common/store.py`](common/store.py)에 한 번만 적어 두고 여덟 폴더가 함께 쓴다. API 방식만 다르고 아래에 놓인 자료는 같아야 한다. 그래야 견주는 의미가 있다.
+여덟 폴더가 똑같이 내놓는 것은 이 둘이다. WebSocket의 `subscribe`, gRPC의 `Watch`, Webhook의 등록처럼 방식마다 더 붙는 것은 그 방식이 무엇을 할 수 있는지 보여 주려고 둔 것이다. 자료는 [`common/store.py`](common/store.py)에 한 번만 적어 두고 여덟 폴더가 함께 쓴다. API 방식만 다르고 아래에 놓인 자료는 같아야 한다. 그래야 견주는 의미가 있다.
 
 ## 여덟 폴더
 
@@ -116,7 +116,7 @@ gRPC        reading = stub.Get(sensor_id)   # 타입까지 .proto가 정한다
 | 화면마다 필요한 필드가 다르다 | GraphQL |
 | 서비스끼리 부른다, 속도와 타입 안전이 중요하다 | gRPC |
 | 값이 자주 바뀌고 바로 알아야 한다 | WebSocket |
-| 상대가 내 서버를 부르게 하고 싶다, 평소 연결이 없어야 한다 | Webhook |
+| 값이 바뀔 때 내가 상대 서버를 불러 알려 주고 싶다, 평소 연결이 없어야 한다 | Webhook |
 | 남에게 내 API를 쓰게 한다 | REST나 gRPC 위에 SDK를 함께 낸다 |
 | 규약을 완전히 내 마음대로 정해야 한다 | 소켓 API |
 
