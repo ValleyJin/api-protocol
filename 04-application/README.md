@@ -16,15 +16,15 @@
 
 ### 아래 계층을 무엇으로 골랐는가
 
-이 표의 '경계' 열은 사실 3층에서 무엇을 골랐느냐로 정해진다. HTTP, MQTT, WebSocket은 TCP를 골라 경계를 스스로 정해야 했다. DNS와 CoAP는 UDP를 골라 경계를 공짜로 얻었고, 그 대신 재전송을 떠안았다.
+위 표의 '경계' 열은 사실 3층에서 무엇을 골랐느냐로 정해진다. HTTP, MQTT, WebSocket은 TCP를 골라 경계를 스스로 정해야 했다. DNS와 CoAP는 UDP를 골라 경계를 공짜로 얻었고, 그 대신 재전송을 떠안았다.
 
 | 프로토콜 | 아래 계층 | 그 선택으로 얻는 것 | 그 선택의 대가 |
 |---|---|---|---|
-| HTTP, MQTT, WebSocket | TCP | 도착과 순서를 안 챙겨도 된다 | 경계를 직접 정한다, 핸드셰이크 한 번 |
+| HTTP, MQTT, WebSocket | TCP | 도착과 순서를 안 챙겨도 된다 | 경계를 직접 정한다, 핸드셰이크(MQTT와 WebSocket은 그 위에 한 번 더) |
 | DNS | UDP | 한 통에 담기면 왕복 한 번 | 커지면 TCP로 넘어가야 한다 |
 | CoAP | UDP | 헤더 4바이트, 핸드셰이크 없음 | 재전송을 손으로 적는다 |
 
-이 맞바꿈을 숫자로 보려면 [`../03-transport-socket/compare_tcp_udp.py`](../03-transport-socket/compare_tcp_udp.py)를 돌린다. TCP는 받는 쪽이 못 따라가면 멈춰 서고 UDP는 99.6%를 버린다. CoAP가 치르는 대가가 그 숫자다.
+이 맞바꿈을 숫자로 보려면 [`../03-transport-socket/compare_tcp_udp.py`](../03-transport-socket/compare_tcp_udp.py)를 돌린다. TCP는 받는 쪽이 못 따라가면 멈춰 서고, UDP는 받는 쪽 버퍼를 좁혀 놓으면 99.6%를 말없이 버린다. CoAP가 치르는 대가가 그 숫자다.
 
 ## 하위 폴더
 

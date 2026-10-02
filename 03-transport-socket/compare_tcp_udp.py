@@ -104,7 +104,10 @@ def measure_boundary(tcp_port, udp_port):
         s.connect(("127.0.0.1", tcp_port))
         for piece in pieces:
             s.sendall(piece)
-            time.sleep(0.02)       # 띄워 보내도 결과는 같다
+            time.sleep(0.02)       # 띄워 보내도 붙어서 온다
+        # 0.2초 기다렸다 한 번에 읽는다. 바로 읽으면 그때까지 도착한 만큼만
+        # 나뉘어 오므로, TCP가 "합쳐 준다"고 오해하기 쉽다. TCP는 합치지도
+        # 나누지도 않는다. 경계라는 개념 자체가 없을 뿐이다.
         time.sleep(0.2)
         tcp_first = s.recv(65535)
     tcp_calls = 1 if tcp_first == b"".join(pieces) else -1
@@ -121,10 +124,11 @@ def measure_boundary(tcp_port, udp_port):
                 break
 
     return {
-        "TCP": (f"send 3번 → recv 1번에 {len(tcp_first)}바이트가 붙어서 왔다"
+        "TCP": (f"send 3번 → recv 1번에 {len(tcp_first)}바이트가 붙어서 왔다 (0.2초 뒤에 읽었다)"
                 if tcp_calls == 1 else f"recv로 {len(tcp_first)}바이트를 받았다"),
         "UDP": f"sendto 3번 → recvfrom {len(udp_got)}번, 각각 {[len(x) for x in udp_got]}바이트",
-        "뜻": "TCP는 바이트 흐름이라 경계가 없다. UDP는 보낸 덩어리가 그대로 하나씩 온다",
+        "뜻": "TCP는 바이트 흐름이라 경계가 없다. 합쳐 주는 것이 아니라 "
+              "경계라는 개념이 없을 뿐이다. UDP는 보낸 덩어리가 그대로 하나씩 온다",
     }
 
 
@@ -272,7 +276,8 @@ def measure_throughput(tcp_port, udp_port, count):
     return {
         "TCP": f"{count}회 왕복 {tcp_sec * 1000:.0f}ms, 초당 {count / tcp_sec:.0f}회",
         "UDP": f"{done}회 왕복 {udp_sec * 1000:.0f}ms, 초당 {done / udp_sec:.0f}회",
-        "뜻": "연결 하나를 계속 쓰면 둘의 차이가 크지 않다. 차이는 보장에서 온다",
+        "뜻": "돌릴 때마다 흔들려 둘을 견줄 수 없다. 여기서 순위를 읽지 마라. "
+              "차이는 속도가 아니라 보장에서 온다",
     }
 
 
