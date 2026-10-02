@@ -78,7 +78,7 @@ python3 demo.py --fail --trace
 reading.temperature = 0   →  FrozenInstanceError
 ```
 
-사전이었다면 그냥 바뀐다. 얼려 두면 서버에서 받은 값을 실수로 고쳐 쓰고 그것이 옳은 값이라고 믿는 사고를 막는다. 필드 이름을 틀리면 `AttributeError`가 바로 난다. 사전이었다면 `KeyError`가 한참 뒤에 엉뚱한 곳에서 난다.
+사전이었다면 그냥 바뀐다. 얼려 두면 서버에서 받은 값을 실수로 고쳐 놓고 그 값이 맞다고 믿어 버리는 일을 막는다. 필드 이름을 틀리면 `AttributeError`가 바로 난다. 사전이었다면 `KeyError`가 한참 뒤에 엉뚱한 곳에서 난다.
 
 `05-grpc-api`는 이 타입을 `.proto`에서 자동으로 만들어 낸다. SDK를 손으로 짜는 대신 계약서에서 뽑아내는 셈이다.
 
