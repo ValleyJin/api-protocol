@@ -22,6 +22,9 @@ python3 02-internet-layer/ping.py 8.8.8.8
 python3 03-transport-socket/tcp_echo_server.py &
 python3 03-transport-socket/tcp_echo_client.py --stream
 
+# 3층: TCP와 UDP에 같은 일을 시켜 다섯 가지를 나란히 잰다
+python3 03-transport-socket/compare_tcp_udp.py
+
 # 4층: 직접 구현한 다섯 프로토콜 가운데 MQTT로 발행-구독을 해 본다 (브로커도 직접 만든 것이다)
 python3 04-application/mqtt/broker.py &
 python3 04-application/mqtt/publisher.py 23.5 --retain
@@ -42,7 +45,7 @@ python3 06-encapsulation/peel.py 06-encapsulation/samples/sample.pcap
 |---|---|---|
 | [`01-link-layer`](01-link-layer/) | 1층. 네트워크 인터페이스 | 프레임·ARP 파서, ARP 요청 직접 조립 |
 | [`02-internet-layer`](02-internet-layer/) | 2층. 인터넷 | IP 파서, 체크섬, ping, traceroute |
-| [`03-transport-socket`](03-transport-socket/) | 3층. 전송 + 소켓 API | TCP·UDP 서버와 클라이언트, `select` 서버, TCP 파서 |
+| [`03-transport-socket`](03-transport-socket/) | 3층. 전송 + 소켓 API | TCP·UDP 서버와 클라이언트, `select` 서버, TCP 파서, TCP↔UDP 견주기 |
 | [`04-application`](04-application/) | 4층. 애플리케이션 | HTTP·DNS·WebSocket·MQTT·CoAP를 각각 직접 구현 |
 | [`05-api-layers`](05-api-layers/) | 최상단. API | 소켓·라이브러리·REST·GraphQL·gRPC·WebSocket·Webhook·SDK |
 | [`06-encapsulation`](06-encapsulation/) | 전부를 잇는다 | 계층별 헤더 벗기기, 오버헤드 셈 |
