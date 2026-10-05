@@ -78,6 +78,14 @@ def main():
     # 방향마다 스트림을 따로 모은다. 요청과 응답을 한 바구니에 담으면 파싱이 깨진다.
     flows = defaultdict(lambda: {"frames": 0, "link": 0, "ip": 0, "tcp": 0, "app": 0,
                                  "c2s": b"", "s2c": b"", "total": 0})
+    # 프레임마다 머리글 합을 따로 재어 둔다. 1층과 2층이 늘 14, 20인 캡처만 보면
+    # 54~70 같은 닫힌 범위를 외우게 된다. VLAN 태그나 IP 옵션이 붙은 캡처에서는
+    # 그 범위가 깨지므로 범위를 박아 두지 않고 지금 센 값에서 구해 찍는다.
+    header_lens = []
+    layer_seen = {"link": set(), "ip": set(), "tcp": set()}
+    # 센 프레임만 적고 버린 것을 말하지 않으면 "프레임마다"가 무엇을 가리키는지
+    # 알 수 없다. 진짜 캡처는 거의 다 섞여 있다.
+    skipped = 0
 
     with f:
         print(f"파일      : {args.pcap}")
@@ -92,11 +100,13 @@ def main():
         for ts, data, orig_len in f:
             link_len, ip_pkt, ethertype = strip_link_header(f.linktype_name, data)
             if ethertype != 0x0800 or len(ip_pkt) < 20 or ip_pkt[9] != 6:
+                skipped += 1          # IPv4 위의 TCP가 아니다
                 continue
             ihl = (ip_pkt[0] & 0x0F) * 4
             total_len = struct.unpack("!H", ip_pkt[2:4])[0]
             seg = ip_pkt[ihl:total_len]
             if len(seg) < 20:
+                skipped += 1
                 continue
             sport, dport = struct.unpack("!HH", seg[:4])
             tcp_hlen = (struct.unpack("!H", seg[12:14])[0] >> 12) * 4
@@ -110,6 +120,10 @@ def main():
             flow["tcp"] += tcp_hlen
             flow["app"] += len(payload)
             flow["total"] += len(data)
+            header_lens.append(link_len + ihl + tcp_hlen)
+            layer_seen["link"].add(link_len)
+            layer_seen["ip"].add(ihl)
+            layer_seen["tcp"].add(tcp_hlen)
             if dport in KNOWN_PORTS:
                 flow["c2s"] += payload      # 클라이언트 → 서버 (요청)
             else:
@@ -176,10 +190,34 @@ def main():
         print("  common/sensor.py 가 그래서 있다. 캡처를 직접 떠서 건수를 바꿔 가며")
         print("  다시 세어 보면 어디서 순서가 뒤집히는지 보인다.")
 
+    def span_of(vals):
+        vals = sorted(vals)
+        return str(vals[0]) if vals[0] == vals[-1] else f"{vals[0]}~{vals[-1]}"
+
+    def span(key):
+        return span_of(layer_seen[key])
+
     print()
     print("정리")
-    print("  1층 14 + 2층 20 + 3층 20~36 = 프레임마다 54~70바이트가 그냥 붙는다.")
-    print("  TCP 헤더는 타임스탬프 옵션만 붙으면 32, SYN처럼 MSS까지 붙으면 36이다.")
+    if skipped:
+        counted = sum(flow["frames"] for flow in flows.values())
+        print(f"  이 캡처의 {counted + skipped}프레임 가운데 {skipped}프레임은 IPv4 위의")
+        print("  TCP가 아니어서 세지 않았다. 아래 숫자는 나머지를 센 것이다.")
+    # 층별 범위를 + 로 잇고 = 로 합을 적으면 거짓이 된다. 세 층의 최솟값이 한
+    # 프레임에 함께 나타나지 않으면 양쪽이 안 맞는다. 그래서 합계도 프레임마다
+    # 센 값으로 따로 찍는다.
+    print(f"  이 캡처에서는 1층이 {span('link')}, 2층이 {span('ip')}, 3층이 {span('tcp')}바이트였다.")
+    print(f"  프레임마다 붙은 머리글은 {span_of(header_lens)}바이트다. 층별 범위를 더한 값이")
+    print("  아니라 프레임마다 센 값이다. 가장 작은 값끼리, 가장 큰 값끼리 한 프레임에")
+    print("  함께 나타날 때만 양쪽 끝이 맞는다. 그리고 범위는 양 끝만 적은 것이라 그 사이")
+    print("  값이 다 나왔다는 뜻이 아니다.")
+    print("  이 범위는 이 캡처에서 나온 것이다. VLAN 태그가 붙으면 1층이 18, 두 겹이면")
+    print("  22가 된다. IP 옵션이 붙으면 2층이 60까지, TCP 옵션은 상한이 40이라 3층이")
+    print("  60까지 간다. 세 층이 겹치면 머리글만 140을 넘는다. 다만 이 셈은 IPv4 위의")
+    print("  TCP만 센다. MPLS나 PPPoE로 감싼 캡처는 이더타입이 IPv4가 아니라")
+    print("  프레임마다 건너뛰어 흐름을 못 찾는다.")
+    print("  캡처를 바꿔 가며 이 줄의 숫자가 어떻게 달라지는지 보는 것이")
+    print("  범위를 외우는 것보다 낫다.")
     print("  센서 값 4바이트를 보내려고 그 열 배가 넘는 바이트가 움직인다.")
     print("  좁은 망에서 프로토콜을 고르는 일이 왜 중요한지 이 숫자가 말해 준다.")
     print("  05-api-layers 의 여덟 방식도 결국 이 숫자 위에 얹힌다.")

@@ -123,12 +123,20 @@ def main():
         body = len(reply["payload"])
         print(f"  CoAP 요청 {len(packet):>4}바이트   응답 {reply['size']:>4}바이트  "
               f"(본문 {body})")
-        print(f"  HTTP 요청  120바이트   응답  199바이트  (본문 74)")
-        print("  * HTTP 수치는 04-application/http/raw_client.py 를 같은 값으로 돌렸을 때다.")
-        print()
-        print(f"  CoAP가 규약에 쓴 바이트: {len(packet) + reply['size'] - body}")
-        print(f"  HTTP가 규약에 쓴 바이트: {120 + 199 - 74}")
-        print("  좁은 망에서 배터리로 도는 기기에는 이 차이가 크다.")
+        if args.path == PATH:
+            print(f"  HTTP 요청  120바이트   응답  199바이트  (본문 74)")
+            print("  * HTTP 수치는 04-application/http/raw_client.py 를 같은 값으로 돌렸을 때다.")
+            print()
+            print(f"  CoAP가 규약에 쓴 바이트: {len(packet) + reply['size'] - body}")
+            print(f"  HTTP가 규약에 쓴 바이트: {120 + 199 - 74}")
+            print("  좁은 망에서 배터리로 도는 기기에는 이 차이가 크다.")
+        else:
+            print(f"  CoAP가 규약에 쓴 바이트: {len(packet) + reply['size'] - body}")
+            print()
+            print("  HTTP 쪽은 찍지 않는다. 적어 둔 HTTP 수치는 기본 경로로 잰 것이라")
+            print(f"  --path 를 {args.path} 로 바꾼 지금과는 견줄 수 없다. HTTP 요청도")
+            print("  경로를 그대로 싣기 때문에 경로를 줄이면 HTTP도 함께 줄어든다.")
+            print(f"  견주려면 --path 를 {PATH} 로 두고 다시 돌린다.")
         print("  대신 CoAP는 UDP라 재전송과 순서를 스스로 챙겨야 한다. 위에서 본 대로다.")
     return 0
 

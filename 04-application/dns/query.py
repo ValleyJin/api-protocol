@@ -25,11 +25,15 @@ DNS 메시지는 12바이트 헤더로 시작한다.
 """
 
 import argparse
+import pathlib
 import random
 import socket
 import struct
 import sys
 import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+from tools.hexdump import hexdump  # noqa: E402
 
 TYPES = {"A": 1, "NS": 2, "CNAME": 5, "SOA": 6, "PTR": 12, "MX": 15,
          "TXT": 16, "AAAA": 28, "DNSKEY": 48, "ANY": 255, "OPT": 41}
@@ -42,7 +46,15 @@ RCODES = {0: "성공", 1: "형식 오류", 2: "서버 실패", 3: "그런 이름
 def encode_name(name: str) -> bytes:
     """example.com 을 \\x07example\\x03com\\x00 으로 바꾼다."""
     out = b""
-    for label in name.rstrip(".").split("."):
+    stripped = name.rstrip(".")
+    # 루트는 라벨이 없다. "".split(".") 가 빈 라벨 하나를 돌려주므로
+    # 그대로 두면 00 00 두 바이트가 되어 서버가 거절한다.
+    labels = stripped.split(".") if stripped else []
+    for label in labels:
+        if not label:
+            # ".example.com" 이나 "a..b" 처럼 빈 라벨이 끼면 길이 0 바이트가
+            # 이름을 끝내 버려 엉뚱한 패킷이 나간다.
+            raise ValueError(f"이름에 빈 라벨이 있다: {name!r}")
         if len(label) > 63:
             raise ValueError(f"라벨이 63바이트를 넘는다: {label}")
         out += bytes([len(label)]) + label.encode("ascii")
@@ -181,6 +193,8 @@ def main():
     ap.add_argument("--port", type=int, default=53)
     ap.add_argument("--dnssec", action="store_true", help="DNSSEC 자료까지 달라고 한다")
     ap.add_argument("--bufsize", type=int, help="EDNS0로 알릴 UDP 수신 한계")
+    ap.add_argument("--hex", action="store_true",
+                    help="받은 응답을 그대로 16진수로 찍는다 (압축 포인터를 눈으로 보려면 쓴다)")
     args = ap.parse_args()
 
     qtype = TYPES.get(args.type.upper())
@@ -203,6 +217,13 @@ def main():
         return 1
     elapsed = (time.time() - started) * 1000
 
+    if args.hex:
+        # 이름을 풀어 적은 표만 보면 압축 포인터가 안 보인다. 받은 바이트를
+        # 그대로 찍어야 c0 0c 같은 2바이트가 눈에 들어온다.
+        print("받은 응답을 그대로 찍는다. c0 으로 시작하는 2바이트가 압축 포인터다.")
+        print(hexdump(data))
+        print()
+
     result = parse_response(data)
     print(f"응답 {len(data)}바이트, {elapsed:.1f}ms")
     print(f"  ID 맞음: {result['id'] == ident}   결과: {RCODES.get(result['rcode'], result['rcode'])}")
@@ -216,6 +237,10 @@ def main():
         data = ask(args.server, args.port, packet, use_tcp=True)
         result = parse_response(data)
         print(f"  TCP로 다시 물었다: {len(data)}바이트, 답 {result['counts'][1]}개")
+        if args.hex:
+            # 위에서 찍은 것은 잘린 UDP 응답이다. 포인터를 보려면 이쪽을 봐야 한다.
+            print("  TCP로 받은 응답을 그대로 찍는다.")
+            print(hexdump(data))
         print("  이것이 'DNS는 UDP를 쓴다'는 말이 반쪽인 이유다. TCP도 쓴다.")
 
     print()

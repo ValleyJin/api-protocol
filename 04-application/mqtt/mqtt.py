@@ -38,8 +38,16 @@ CONNACK_REASONS = {0: "접속 승인", 1: "프로토콜 판본이 안 맞다", 2
                    3: "서버를 쓸 수 없다", 4: "이름이나 비밀번호가 틀렸다", 5: "권한이 없다"}
 
 
+# MQTT 3.1.1은 남은 길이를 4바이트까지만 허용한다. 그 상한이 268435455다.
+MAX_REMAINING_LENGTH = 268435455
+
+
 def encode_varint(n: int) -> bytes:
     """남은 길이를 7비트씩 잘라 적는다. 127까지는 1바이트로 끝난다."""
+    if n < 0:
+        raise ValueError("남은 길이가 음수다")
+    if n > MAX_REMAINING_LENGTH:
+        raise ValueError(f"남은 길이는 {MAX_REMAINING_LENGTH}를 넘을 수 없다")
     out = b""
     while True:
         byte = n % 128
@@ -64,7 +72,9 @@ def decode_varint(data, offset=0):
         if not byte & 0x80:
             return value, offset
         multiplier *= 128
-        if count > 4:
+        # 이 자리는 "뒤에 더 있다" 표시를 이미 확인한 뒤다. 네 바이트를 읽고도
+        # 표시가 서 있으면 명세를 넘은 것이니 다섯째 바이트를 읽기 전에 거른다.
+        if count >= 4:
             raise ValueError("남은 길이가 4바이트를 넘는다")
 
 

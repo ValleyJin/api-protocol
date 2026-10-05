@@ -42,11 +42,11 @@ class SensorNotFound(SensorError):
 
 
 class SensorUnavailable(SensorError):
-    """서버에 닿지 못했다. 재시도를 다 쓴 뒤에 난다."""
+    """서버에서 쓸 만한 답을 얻지 못했다. 닿지 못했거나 5xx가 돌아왔을 때, 재시도를 다 쓴 뒤에 난다."""
 
 
 class SensorRejected(SensorError):
-    """서버가 요청을 거절했다. HTTP 4xx에 해당한다."""
+    """서버가 요청을 거절했다. HTTP 4xx, 그리고 다시 해도 소용없는 3xx에 해당한다."""
 
 
 @dataclass(frozen=True)
@@ -94,6 +94,14 @@ class SensorClient:
         if body:
             headers["Content-Type"] = "application/json"
 
+        if not isinstance(self.retries, int) or isinstance(self.retries, bool) \
+                or self.retries < 1:
+            # 0을 넣으면 루프가 한 번도 안 돌아 요청 없이 예외가 난다.
+            # README가 재시도 횟수를 바꿔 보라고 하니 0을 넣는 사람이 나온다.
+            # 1.5나 "3" 처럼 1 이상이어도 range() 에서 터지는 값이 있어 함께 막는다.
+            raise ValueError(
+                f"retries 는 1 이상인 정수여야 한다 (받은 값: {self.retries!r})")
+
         wait = 0.2
         last_error = None
         for attempt in range(1, self.retries + 1):
@@ -104,11 +112,31 @@ class SensorClient:
                 with urllib.request.urlopen(request, timeout=self.timeout) as resp:
                     raw = resp.read()
                     self._log(f"{resp.status} 응답 {len(raw)}바이트")
-                    return json.loads(raw)
+                    try:
+                        return json.loads(raw)
+                    except json.JSONDecodeError as exc:
+                        # 2xx인데 JSON이 아닐 수 있다. 204처럼 본문이 비었거나
+                        # 앞단이 HTML 오류 쪽을 끼워 넣었을 때다. 이것을 그냥
+                        # 올려 보내면 SensorError 로 감싼 쪽 코드가 터진다.
+                        raise SensorRejected(
+                            f"{resp.status} 응답이 JSON이 아니다 "
+                            f"({len(raw)}바이트)") from exc
             except urllib.error.HTTPError as exc:
                 # 4xx는 다시 해 봐야 소용없다. 바로 예외로 바꾼다.
                 detail = exc.read().decode(errors="replace")
-                self._log(f"HTTP {exc.code} — 다시 하지 않는다")
+                if 400 <= exc.code < 500:
+                    self._log(f"HTTP {exc.code} — 요청 쪽 문제다. 다시 하지 않는다")
+                elif exc.code >= 500:
+                    # 마지막 시도에서는 다시 하지 않는다. 로그가 앞질러 말하면
+                    # 화면과 실제 행동이 어긋난다.
+                    tail = "다시 해 본다" if attempt < self.retries else "다시 할 횟수를 다 썼다"
+                    self._log(f"HTTP {exc.code} — 서버 쪽 오류다. {tail}")
+                else:
+                    # 3xx도 HTTPError로 올라온다. urllib이 따라가지 못한 리다이렉트나
+                    # 304처럼 본문이 없는 응답이다. 다시 해도 같은 답이 온다.
+                    self._log(f"HTTP {exc.code} — 재시도로 풀릴 응답이 아니다")
+                    raise SensorRejected(
+                        f"서버가 뜻밖의 응답을 보냈다 ({exc.code}): {detail}") from exc
                 if exc.code == 404:
                     raise SensorNotFound(f"그런 센서가 없다: {path}") from exc
                 if 400 <= exc.code < 500:
@@ -125,7 +153,7 @@ class SensorClient:
                 wait *= 2      # 갑절씩 늘린다
 
         raise SensorUnavailable(
-            f"{self.retries}번 해 봤지만 {url} 에 닿지 못했다: {last_error}") from last_error
+            f"{self.retries}번 해 봤지만 {url} 에서 쓸 만한 답을 얻지 못했다: {last_error}") from last_error
 
     # ── 바깥에 내놓는 것은 이 셋뿐이다 ────────────────────────────────
     def get(self, sensor_id="living-room") -> Reading:

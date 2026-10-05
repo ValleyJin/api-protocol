@@ -128,9 +128,23 @@ def main():
             print(f"get() → {message['result']['temperature']}"
                   f"{message['result']['unit']}")
             print(f"  요청 프레임 {sent}바이트, 응답 프레임 {got}바이트")
-            print(f"  REST의 GET은 요청 78 + 응답 243 정도였다. 프레임이 훨씬 짧다.")
+            rest = 78 + 243
+            saved = rest - (sent + got)
+            print(f"  REST의 GET은 요청 78 + 응답 243 = {rest}바이트였다.")
             print(f"  대신 핸드셰이크 {client.handshake_bytes}바이트를 미리 냈다.")
-            print(f"  요청 {client.handshake_bytes // (sent + got)}번쯤부터 이득이 난다.")
+            # 핸드셰이크를 프레임 비용으로 나누면 안 된다. 나눌 것은 요청마다
+            # 아끼는 바이트다. 그리고 나누어떨어지는 지점은 본전이지 이득이 아니니
+            # 올림이 아니라 몫에 1을 더한다. k번 불렀을 때 WebSocket이 싸려면
+            # handshake + (rest - saved) * k < rest * k, 곧 k > handshake / saved 다.
+            if saved < 0:
+                print(f"  프레임이 REST보다 {-saved}바이트 크니 몇 번을 불러도 이득이 안 난다.")
+            elif saved == 0:
+                print("  프레임이 REST와 똑같으니 핸드셰이크만 더 낸 셈이다. 이득이 안 난다.")
+            else:
+                n = client.handshake_bytes // saved + 1
+                print(f"  프레임이 훨씬 짧아 요청마다 {saved}바이트를 아낀다.")
+                print(f"  그래서 요청 {n}번째부터 이득이 난다. 핸드셰이크"
+                      f" {client.handshake_bytes}바이트를 그때 되찾는다.")
 
         elif args.command == "set":
             if args.value is None:
