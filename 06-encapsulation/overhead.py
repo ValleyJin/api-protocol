@@ -130,6 +130,12 @@ def main():
                 flow["s2c"] += payload      # 서버 → 클라이언트 (응답)
 
     if not flows:
+        # 여기서 돌아 나가면 아래 정리 절을 못 찍는다. MPLS나 PPPoE 캡처처럼
+        # 전부 버려지는 경우가 그 설명이 가장 필요한 때다.
+        if skipped:
+            print(f"  이 캡처의 {skipped}프레임은 모두 IPv4 위의 TCP가 아니어서 세지 않았다.")
+            print("  이 셈은 IPv4 위의 TCP만 센다. MPLS나 PPPoE로 감싼 캡처는 이더타입이")
+            print("  IPv4가 아니라 프레임마다 건너뛴다.")
         print("TCP 흐름을 찾지 못했다.")
         return 0
 

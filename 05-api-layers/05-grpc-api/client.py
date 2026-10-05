@@ -119,7 +119,7 @@ def main():
             print("  --id 로 긴 id를 넣어 보면 비율이 거꾸로 떨어진다. 아끼는 바이트는")
             print("  거의 그대로인데 전체가 커지기 때문이다.")
             print(f"  이번에 아낀 바이트: {len(as_json) - len(proto_bytes)}"
-                  " (값이 바뀌면 이 숫자도 바뀐다)")
+                  " (값에 따라 달라지는 숫자다)")
             print()
             print("  JSON은 눈으로 읽힌다. protobuf는 짧다. 맞바꾸는 관계다.")
     except grpc.RpcError as exc:

@@ -23,6 +23,7 @@ SDK가 대신 떠안는 일이 무엇인지 아래 코드에서 그대로 드러
 --trace 를 켜면 그 안을 들여다볼 수 있게 해 두었다.
 """
 
+import http.client
 import json
 import time
 import urllib.error
@@ -46,7 +47,7 @@ class SensorUnavailable(SensorError):
 
 
 class SensorRejected(SensorError):
-    """서버가 요청을 거절했다. HTTP 4xx, 그리고 다시 해도 소용없는 3xx에 해당한다."""
+    """서버가 요청을 거절했다. HTTP 4xx, 다시 해도 소용없는 3xx, 그리고 2xx인데 쓸 수 없는 본문이 왔을 때다."""
 
 
 @dataclass(frozen=True)
@@ -59,8 +60,14 @@ class Reading:
 
     @classmethod
     def from_json(cls, payload: dict) -> "Reading":
-        return cls(sensor=payload["sensor"], temperature=float(payload["temperature"]),
-                   unit=payload["unit"], ts=float(payload["ts"]))
+        # 200이 왔는데 모양이 다른 본문이 올 수 있다. 앞단이 끼워 넣은 응답이나
+        # 판이 다른 서버다. 여기서 막지 않으면 KeyError 가 그대로 올라가
+        # SensorError 로 감싼 쪽 코드가 터진다.
+        try:
+            return cls(sensor=payload["sensor"], temperature=float(payload["temperature"]),
+                       unit=payload["unit"], ts=float(payload["ts"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SensorRejected(f"응답에 센서 값이 없다: {payload!r}"[:200]) from exc
 
     def __str__(self):
         return f"{self.temperature}{self.unit} ({self.sensor})"
@@ -113,14 +120,20 @@ class SensorClient:
                     raw = resp.read()
                     self._log(f"{resp.status} 응답 {len(raw)}바이트")
                     try:
-                        return json.loads(raw)
-                    except json.JSONDecodeError as exc:
+                        data = json.loads(raw)
+                    except (ValueError, UnicodeDecodeError) as exc:
                         # 2xx인데 JSON이 아닐 수 있다. 204처럼 본문이 비었거나
-                        # 앞단이 HTML 오류 쪽을 끼워 넣었을 때다. 이것을 그냥
-                        # 올려 보내면 SensorError 로 감싼 쪽 코드가 터진다.
+                        # 앞단이 HTML 오류 쪽을 끼워 넣었거나 gzip을 그대로
+                        # 넘겼을 때다. UnicodeDecodeError 는 JSONDecodeError 가
+                        # 아니어서 따로 받아야 한다.
                         raise SensorRejected(
                             f"{resp.status} 응답이 JSON이 아니다 "
                             f"({len(raw)}바이트)") from exc
+                    if not isinstance(data, dict):
+                        # null, 42, [1,2,3] 도 JSON으로는 읽힌다.
+                        raise SensorRejected(
+                            f"{resp.status} 응답이 JSON 객체가 아니다: {type(data).__name__}")
+                    return data
             except urllib.error.HTTPError as exc:
                 # 4xx는 다시 해 봐야 소용없다. 바로 예외로 바꾼다.
                 detail = exc.read().decode(errors="replace")
@@ -142,6 +155,11 @@ class SensorClient:
                 if 400 <= exc.code < 500:
                     raise SensorRejected(f"서버가 거절했다 ({exc.code}): {detail}") from exc
                 last_error = exc
+            except http.client.HTTPException as exc:
+                # Content-Length 가 본문보다 길면 IncompleteRead 가 난다.
+                # 연결이 중간에 끊긴 것이니 다시 해 볼 만하다.
+                last_error = exc
+                self._log(f"응답을 끝까지 못 읽었다: {exc}")
             except (urllib.error.URLError, OSError, TimeoutError) as exc:
                 # 닿지 못한 것은 다시 해 볼 만하다.
                 last_error = exc
@@ -167,7 +185,10 @@ class SensorClient:
 
     def list(self):
         """센서 목록을 읽는다."""
-        return self._request("GET", "/sensors")["sensors"]
+        payload = self._request("GET", "/sensors")
+        if "sensors" not in payload:
+            raise SensorRejected(f"응답에 sensors 목록이 없다: {payload!r}"[:200])
+        return payload["sensors"]
 
     def __enter__(self):
         return self

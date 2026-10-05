@@ -26,7 +26,7 @@ def get():
 def set_value(value: float):
     with _LOCK:
         _STATE["temperature"] = round(float(value), 1)
-        _STATE["ts"] = round(time.time(), 3)   # 자릿수를 고정해 측정값이 흔들리지 않게 한다
+        _STATE["ts"] = round(time.time(), 3)   # 자릿수를 줄여 흔들림을 한두 바이트로 묶어 둔다
         return dict(_STATE)
 
 
