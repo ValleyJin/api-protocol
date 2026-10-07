@@ -82,6 +82,9 @@ def main():
     # 54~70 같은 닫힌 범위를 외우게 된다. VLAN 태그나 IP 옵션이 붙은 캡처에서는
     # 그 범위가 깨지므로 범위를 박아 두지 않고 지금 센 값에서 구해 찍는다.
     header_lens = []
+    # 잡힌 길이가 원래 길이보다 짧은 프레임을 센다. 머리글은 멀쩡히 읽히니
+    # 건너뛰지 않는데, 4층과 합계가 잡힌 만큼만 나와 비율이 조용히 작아진다.
+    truncated = 0
     layer_seen = {"link": set(), "ip": set(), "tcp": set()}
     # 센 프레임만 적고 버린 것을 말하지 않으면 "프레임마다"가 무엇을 가리키는지
     # 알 수 없다. 진짜 캡처는 거의 다 섞여 있다.
@@ -132,6 +135,8 @@ def main():
             flow["tcp"] += tcp_hlen
             flow["app"] += len(payload)
             flow["total"] += len(data)
+            if len(data) < orig_len:
+                truncated += 1
             header_lens.append(link_len + ihl + tcp_hlen)
             layer_seen["link"].add(link_len)
             layer_seen["ip"].add(ihl)
@@ -147,10 +152,11 @@ def main():
         if skipped:
             print(f"  이 캡처의 {skipped}프레임은 모두 IPv4 위의 TCP로 읽히지 않아 세지 않았다.")
             print("  이 셈은 IPv4 위의 TCP만 센다. 이더타입을 읽지 못했거나 IPv4가 아니거나(IPv6, ARP,")
-            print("  MPLS, PPPoE), IP의 프로토콜 번호가 6이 아니거나(UDP, ICMP), IP와 TCP")
-            print("  머리글을 끝까지 읽을 수 없는 프레임은 건너뛴다. 머리글을 못 읽는 경우는")
-            print("  스냅 길이를 줄여 잡은 캡처와, IP 전체 길이 필드가 0이거나 머리글보다")
-            print("  짧게 적힌 캡처다.")
+            print("  MPLS, PPPoE), IP의 프로토콜 번호가 6이 아니거나(UDP, ICMP), 조각난")
+            print("  프레임의 뒤 조각이거나, IP와 TCP 머리글을 끝까지 읽을 수 없는 프레임은")
+            print("  건너뛴다. 머리글을 못 읽는 경우는 스냅 길이를 머리글보다 짧게 걸고 잡은")
+            print("  캡처와, IP 전체 길이나 IHL, TCP 데이터 오프셋이 머리글보다 짧게 적힌")
+            print("  캡처다.")
         else:
             # 프레임이 한 장도 없으면 버린 것도 없다. 그 말을 안 하면 읽는
             # 사람이 자기 필터를 의심한다.
@@ -231,6 +237,9 @@ def main():
     # 층별 범위를 + 로 잇고 = 로 합을 적으면 거짓이 된다. 세 층의 최솟값이 한
     # 프레임에 함께 나타나지 않으면 양쪽이 안 맞는다. 그래서 합계도 프레임마다
     # 센 값으로 따로 찍는다.
+    if truncated:
+        print(f"  이 캡처의 {truncated}프레임은 잡힌 길이가 원래 길이보다 짧다.")
+        print("  스냅 길이를 걸고 잡은 것이니 4층과 합계가 그만큼 작게 나온다.")
     print(f"  이 캡처에서는 1층이 {span('link')}, 2층이 {span('ip')}, 3층이 {span('tcp')}바이트였다.")
     print(f"  프레임마다 붙은 머리글은 {span_of(header_lens)}바이트다. 층별 범위를 더한 값이")
     print("  아니라 프레임마다 센 값이다. 가장 작은 값끼리, 가장 큰 값끼리 한 프레임에")
@@ -239,8 +248,9 @@ def main():
     print("  이 범위는 이 캡처에서 나온 것이다. VLAN 태그가 붙으면 1층이 18, 두 겹이면")
     print("  22가 된다. IP 옵션이 붙으면 2층이 60까지, TCP 옵션은 상한이 40이라 3층이")
     print("  60까지 간다. 세 층이 겹치면 머리글만 140을 넘는다. 다만 이 셈은 IPv4 위의")
-    print("  TCP만 센다. UDP나 ICMP, IPv6, MPLS, PPPoE로 감싼 프레임은 건너뛰고,")
-    print("  IP와 TCP 머리글을 끝까지 읽을 수 없는 프레임도 건너뛴다.")
+    print("  TCP만 센다. UDP나 ICMP, IPv6, ARP, MPLS, PPPoE로 감싼 프레임은 건너뛰고,")
+    print("  조각난 프레임의 뒤 조각과, IP와 TCP 머리글을 끝까지 읽을 수 없는 프레임도")
+    print("  건너뛴다.")
     print("  캡처를 바꿔 가며 이 줄의 숫자가 어떻게 달라지는지 보는 것이")
     print("  범위를 외우는 것보다 낫다.")
     print("  센서 값 4바이트를 보내려고 그 열 배가 넘는 바이트가 움직인다.")
