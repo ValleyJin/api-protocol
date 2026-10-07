@@ -72,7 +72,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = json.loads(self.rfile.read(length) or b"{}")
             value = float(payload["temperature"])
-        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError, OverflowError):
             self._send(400, {"error": "본문에 temperature 값이 있어야 한다"})
             return
         result = set_value(value)

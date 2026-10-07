@@ -116,7 +116,7 @@ class Handler(BaseHTTPRequestHandler):
         payload = self._read_json()
         try:
             record = set_value(float(payload["temperature"]))
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, OverflowError):
             self._send(400, {"error": "temperature 값이 있어야 한다"})
             return
         print(f"[서비스] 값이 바뀌었다: {record['temperature']}C — 등록된 곳을 부른다", flush=True)

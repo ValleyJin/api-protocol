@@ -58,7 +58,7 @@ def handle(conn, addr, verbose):
                 elif parts[0].upper() == "SET" and len(parts) == 2:
                     try:
                         reply = f"OK {set_value(float(parts[1]))['temperature']}\n"
-                    except ValueError:
+                    except (ValueError, OverflowError):
                         reply = "ERR not a number\n"
                 elif parts[0].upper() == "QUIT":
                     conn.sendall(b"OK bye\n")

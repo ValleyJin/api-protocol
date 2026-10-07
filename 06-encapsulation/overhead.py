@@ -133,9 +133,14 @@ def main():
         # 여기서 돌아 나가면 아래 정리 절을 못 찍는다. MPLS나 PPPoE 캡처처럼
         # 전부 버려지는 경우가 그 설명이 가장 필요한 때다.
         if skipped:
-            print(f"  이 캡처의 {skipped}프레임은 모두 IPv4 위의 TCP가 아니어서 세지 않았다.")
+            print(f"  이 캡처의 {skipped}프레임은 모두 IPv4 위의 TCP로 읽히지 않아 세지 않았다.")
             print("  이 셈은 IPv4 위의 TCP만 센다. MPLS나 PPPoE로 감싼 캡처는 이더타입이")
-            print("  IPv4가 아니라 프레임마다 건너뛴다.")
+            print("  IPv4가 아니라 프레임마다 건너뛴다. 스냅 길이를 줄여 잡아 TCP 헤더가")
+            print("  잘린 프레임도 읽지 못해 여기로 온다.")
+        else:
+            # 프레임이 한 장도 없으면 버린 것도 없다. 그 말을 안 하면 읽는
+            # 사람이 자기 필터를 의심한다.
+            print("  이 캡처에는 프레임이 한 장도 없다.")
         print("TCP 흐름을 찾지 못했다.")
         return 0
 
@@ -208,7 +213,7 @@ def main():
     if skipped:
         counted = sum(flow["frames"] for flow in flows.values())
         print(f"  이 캡처의 {counted + skipped}프레임 가운데 {skipped}프레임은 IPv4 위의")
-        print("  TCP가 아니어서 세지 않았다. 아래 숫자는 나머지를 센 것이다.")
+        print("  TCP로 읽히지 않아 세지 않았다. 아래 숫자는 나머지를 센 것이다.")
     # 층별 범위를 + 로 잇고 = 로 합을 적으면 거짓이 된다. 세 층의 최솟값이 한
     # 프레임에 함께 나타나지 않으면 양쪽이 안 맞는다. 그래서 합계도 프레임마다
     # 센 값으로 따로 찍는다.

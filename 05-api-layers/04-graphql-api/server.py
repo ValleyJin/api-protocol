@@ -79,7 +79,7 @@ def execute(query):
             return {"errors": [{"message": f"그런 뮤테이션이 없다: {parsed['root']}"}]}
         try:
             record = set_value(float(parsed["args"].get("value", 0)))
-        except ValueError:
+        except (ValueError, OverflowError):
             return {"errors": [{"message": "value가 숫자가 아니다"}]}
     else:
         if parsed["root"] != "sensor":

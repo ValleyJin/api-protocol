@@ -47,7 +47,7 @@ class SensorUnavailable(SensorError):
 
 
 class SensorRejected(SensorError):
-    """서버가 요청을 거절했다. HTTP 4xx, 다시 해도 소용없는 3xx, 그리고 2xx인데 쓸 수 없는 본문이 왔을 때다."""
+    """서버가 요청을 거절했다. 404를 뺀 HTTP 4xx, 재시도로 풀리지 않는 1xx와 3xx, 그리고 2xx인데 쓸 수 없는 본문이 왔을 때다."""
 
 
 @dataclass(frozen=True)
@@ -66,7 +66,9 @@ class Reading:
         try:
             return cls(sensor=payload["sensor"], temperature=float(payload["temperature"]),
                        unit=payload["unit"], ts=float(payload["ts"]))
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            # OverflowError 는 ArithmeticError 라 ValueError 묶음에 안 걸린다.
+            # 309자리가 넘는 정수를 float() 에 넣으면 난다.
             raise SensorRejected(f"응답에 센서 값이 없다: {payload!r}"[:200]) from exc
 
     def __str__(self):
@@ -121,7 +123,7 @@ class SensorClient:
                     self._log(f"{resp.status} 응답 {len(raw)}바이트")
                     try:
                         data = json.loads(raw)
-                    except (ValueError, UnicodeDecodeError) as exc:
+                    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
                         # 2xx인데 JSON이 아닐 수 있다. 204처럼 본문이 비었거나
                         # 앞단이 HTML 오류 쪽을 끼워 넣었거나 gzip을 그대로
                         # 넘겼을 때다. UnicodeDecodeError 는 JSONDecodeError 가
@@ -156,10 +158,12 @@ class SensorClient:
                     raise SensorRejected(f"서버가 거절했다 ({exc.code}): {detail}") from exc
                 last_error = exc
             except http.client.HTTPException as exc:
-                # Content-Length 가 본문보다 길면 IncompleteRead 가 난다.
-                # 연결이 중간에 끊긴 것이니 다시 해 볼 만하다.
+                # 응답을 HTTP로 읽지 못했다. 끊긴 연결처럼 다시 하면 풀리는 것도
+                # 있고, 서버가 Content-Length 를 잘못 적었거나 HTTP가 아닌 것을
+                # 보낸 것처럼 다시 해도 같은 답이 오는 것도 있다. 여기서는
+                # 가릴 수 없어 다시 해 본다.
                 last_error = exc
-                self._log(f"응답을 끝까지 못 읽었다: {exc}")
+                self._log(f"응답을 HTTP로 읽지 못했다: {exc}")
             except (urllib.error.URLError, OSError, TimeoutError) as exc:
                 # 닿지 못한 것은 다시 해 볼 만하다.
                 last_error = exc
