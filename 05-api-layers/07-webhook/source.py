@@ -18,6 +18,7 @@ Webhook을 받을 수 없다.
 """
 
 import argparse
+import http.client
 import json
 import pathlib
 import sys
@@ -59,7 +60,12 @@ def notify_all(record, verbose):
                     print(f"[서비스] {url} 호출 성공 ({resp.status}, {attempt}번째 시도)",
                           flush=True)
                 break
-            except (urllib.error.URLError, OSError, ValueError, UnicodeError) as exc:
+            except (urllib.error.URLError, OSError, ValueError, UnicodeError,
+                    http.client.HTTPException) as exc:
+                # HTTPException 은 OSError 도 ValueError 도 아니다. callback 이
+                # HTTP가 아닌 서버를 가리키면(이 저장소의 01-socket-api 가 그렇다)
+                # BadStatusLine 이 나고, 밖으로 나가면 알림 스레드가 죽어
+                # 그 뒤에 등록된 곳은 한 번도 안 불린다.
                 print(f"[서비스] {url} 호출 실패 ({attempt}/3): {exc}", flush=True)
         else:
             print(f"[서비스] {url} 를 세 번 다 실패했다. 이 알림은 사라진다.", flush=True)
@@ -68,6 +74,23 @@ def notify_all(record, verbose):
 
 
 class Handler(BaseHTTPRequestHandler):
+    # 본문을 보내다 끊은 상대가 스레드를 붙들지 않게 한다.
+    timeout = 10
+
+    def _read_body(self):
+        """Content-Length 를 그대로 믿지 않는다.
+
+        음수를 넣으면 rfile.read(-1) 이 EOF까지 기다려 응답을 아예 못 낸다.
+        아주 큰 값을 넣으면 오지 않는 바이트를 기다린다. 둘 다 여기서 걸러낸다.
+        """
+        length = int(self.headers.get("Content-Length", 0))
+        if not 0 <= length <= 1 << 20:
+            raise ValueError(f"Content-Length 가 0 이상 1MB 이하가 아니다: {length}")
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            raise ValueError(f"본문이 Content-Length 보다 짧다 ({len(raw)}/{length})")
+        return raw or b"{}"
+
     server_version = "webhook-source/1.0"
 
     def log_message(self, fmt, *args):
@@ -84,8 +107,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _read_json(self):
         try:
-            length = int(self.headers.get("Content-Length", 0))
-            return json.loads(self.rfile.read(length) or b"{}")
+            return json.loads(self._read_body())
         except (json.JSONDecodeError, ValueError, UnicodeDecodeError, RecursionError):
             return None
 
@@ -103,7 +125,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
             return
         payload = self._read_json()
-        if not payload or "callback" not in payload:
+        if not isinstance(payload, dict) or "callback" not in payload:
             self._send(400, {"error": "callback URL이 있어야 한다"})
             return
         with LOCK:

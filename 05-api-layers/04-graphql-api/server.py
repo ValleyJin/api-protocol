@@ -96,6 +96,23 @@ def execute(query):
 
 
 class Handler(BaseHTTPRequestHandler):
+    # 본문을 보내다 끊은 상대가 스레드를 붙들지 않게 한다.
+    timeout = 10
+
+    def _read_body(self):
+        """Content-Length 를 그대로 믿지 않는다.
+
+        음수를 넣으면 rfile.read(-1) 이 EOF까지 기다려 응답을 아예 못 낸다.
+        아주 큰 값을 넣으면 오지 않는 바이트를 기다린다. 둘 다 여기서 걸러낸다.
+        """
+        length = int(self.headers.get("Content-Length", 0))
+        if not 0 <= length <= 1 << 20:
+            raise ValueError(f"Content-Length 가 0 이상 1MB 이하가 아니다: {length}")
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            raise ValueError(f"본문이 Content-Length 보다 짧다 ({len(raw)}/{length})")
+        return raw or b"{}"
+
     server_version = "graphql-api/1.0"
 
     def log_message(self, fmt, *args):
@@ -129,10 +146,14 @@ class Handler(BaseHTTPRequestHandler):
             # int() 와 RecursionError, UTF-8 이 아닌 본문, query 가 문자열이
             # 아닌 경우까지 함께 받는다. 하나라도 밖으로 나가면 서버가 아무
             # 응답도 못 내고 끊어 버린다.
-            length = int(self.headers.get("Content-Length", 0))
-            payload = json.loads(self.rfile.read(length) or b"{}")
+            payload = json.loads(self._read_body())
             query = payload["query"]
             query.strip()
+            if len(query) > 2048:
+                # parse_selection 의 정규식이 뒤에 } 가 없으면 O(n^2)로 돈다.
+                # 32KB 질의 하나가 19초를 먹고, C 정규식이 GIL을 쥐어 그동안
+                # 다른 클라이언트까지 멈춘다. 길이로 먼저 막는다.
+                raise ValueError("질의가 너무 길다")
         except (json.JSONDecodeError, KeyError, ValueError, TypeError,
                 AttributeError, UnicodeDecodeError, RecursionError):
             self._send(400, {"errors": [{"message": "본문에 query가 있어야 한다"}]})

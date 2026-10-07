@@ -106,8 +106,15 @@ def handle(conn, addr, verbose):
                         continue
                     try:
                         request = json.loads(frame["payload"])
-                    except json.JSONDecodeError:
+                    except (ValueError, UnicodeDecodeError, RecursionError):
+                        # UTF-8 이 아닌 프레임은 UnicodeDecodeError, 깊이 중첩한
+                        # JSON 은 RecursionError 다. 둘 다 JSONDecodeError 가
+                        # 아니어서 따로 받아야 한다.
                         send_json(conn, {"error": "JSON이 아니다"})
+                        continue
+                    if not isinstance(request, dict):
+                        # 5, "x", [], null 도 JSON 으로는 읽힌다.
+                        send_json(conn, {"error": "JSON 객체여야 한다"})
                         continue
 
                     rid, method = request.get("id"), request.get("method")
@@ -120,7 +127,7 @@ def handle(conn, addr, verbose):
                         try:
                             result = set_value(request["params"]["temperature"])
                             send_json(conn, {"id": rid, "result": result})
-                        except (KeyError, TypeError, ValueError):
+                        except (KeyError, TypeError, ValueError, OverflowError):
                             send_json(conn, {"id": rid,
                                              "error": "params.temperature 가 있어야 한다"})
                     elif method == "subscribe":

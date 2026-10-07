@@ -38,6 +38,23 @@ SENSOR_ID = "living-room"
 
 
 class Handler(BaseHTTPRequestHandler):
+    # 본문을 보내다 끊은 상대가 스레드를 붙들지 않게 한다.
+    timeout = 10
+
+    def _read_body(self):
+        """Content-Length 를 그대로 믿지 않는다.
+
+        음수를 넣으면 rfile.read(-1) 이 EOF까지 기다려 응답을 아예 못 낸다.
+        아주 큰 값을 넣으면 오지 않는 바이트를 기다린다. 둘 다 여기서 걸러낸다.
+        """
+        length = int(self.headers.get("Content-Length", 0))
+        if not 0 <= length <= 1 << 20:
+            raise ValueError(f"Content-Length 가 0 이상 1MB 이하가 아니다: {length}")
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            raise ValueError(f"본문이 Content-Length 보다 짧다 ({len(raw)}/{length})")
+        return raw or b"{}"
+
     server_version = "rest-api/1.0"
 
     def log_message(self, fmt, *args):
@@ -72,8 +89,7 @@ class Handler(BaseHTTPRequestHandler):
             # int() 도 try 안에 둔다. Content-Length 가 "abc" 면 여기서 난다.
             # RecursionError 는 깊이 중첩한 JSON 에서 난다. 둘 다 밖으로 나가면
             # 서버가 아무 응답도 못 내고 끊어 버린다.
-            length = int(self.headers.get("Content-Length", 0))
-            payload = json.loads(self.rfile.read(length) or b"{}")
+            payload = json.loads(self._read_body())
             # set_value 도 try 안에 둔다. inf 나 nan 이 들어오면 여기서
             # ValueError 가 나는데 밖으로 나가면 응답을 못 내고 끊어 버린다.
             result = set_value(float(payload["temperature"]))

@@ -104,12 +104,24 @@ def main():
                 continue
             ihl = (ip_pkt[0] & 0x0F) * 4
             total_len = struct.unpack("!H", ip_pkt[2:4])[0]
+            frag_off = struct.unpack("!H", ip_pkt[6:8])[0] & 0x1FFF
+            if ihl < 20 or total_len < ihl or frag_off:
+                # IHL 이 20 미만이면 머리글을 읽을 수 없고, total_len 이 머리글보다
+                # 짧으면 길이 필드가 망가진 것이다. 조각난 프레임은 첫 조각만
+                # TCP 머리글을 들고 있으니 뒤 조각을 세면 엉뚱한 숫자가 나온다.
+                # 세 경우를 말없이 세면 표가 조용히 틀린다.
+                skipped += 1
+                continue
             seg = ip_pkt[ihl:total_len]
             if len(seg) < 20:
                 skipped += 1
                 continue
             sport, dport = struct.unpack("!HH", seg[:4])
             tcp_hlen = (struct.unpack("!H", seg[12:14])[0] >> 12) * 4
+            if tcp_hlen < 20 or tcp_hlen > len(seg):
+                # 데이터 오프셋이 5 미만이거나 세그먼트보다 크면 읽을 수 없다.
+                skipped += 1
+                continue
             payload = seg[tcp_hlen:]
 
             key = app_name(sport, dport)
@@ -134,11 +146,11 @@ def main():
         # 전부 버려지는 경우가 그 설명이 가장 필요한 때다.
         if skipped:
             print(f"  이 캡처의 {skipped}프레임은 모두 IPv4 위의 TCP로 읽히지 않아 세지 않았다.")
-            print("  이 셈은 IPv4 위의 TCP만 센다. 이더타입이 IPv4가 아니거나(IPv6, ARP,")
+            print("  이 셈은 IPv4 위의 TCP만 센다. 이더타입을 읽지 못했거나 IPv4가 아니거나(IPv6, ARP,")
             print("  MPLS, PPPoE), IP의 프로토콜 번호가 6이 아니거나(UDP, ICMP), IP와 TCP")
             print("  머리글을 끝까지 읽을 수 없는 프레임은 건너뛴다. 머리글을 못 읽는 경우는")
             print("  스냅 길이를 줄여 잡은 캡처와, IP 전체 길이 필드가 0이거나 머리글보다")
-            print("  짧게 적힌 캡처다. DNS와 CoAP는 UDP라 이 셈에 들어오지 않는다.")
+            print("  짧게 적힌 캡처다.")
         else:
             # 프레임이 한 장도 없으면 버린 것도 없다. 그 말을 안 하면 읽는
             # 사람이 자기 필터를 의심한다.
