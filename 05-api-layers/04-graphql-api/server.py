@@ -125,11 +125,16 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != "/graphql":
             self._send(404, {"errors": [{"message": "엔드포인트는 /graphql 하나다"}]})
             return
-        length = int(self.headers.get("Content-Length", 0))
         try:
+            # int() 와 RecursionError, UTF-8 이 아닌 본문, query 가 문자열이
+            # 아닌 경우까지 함께 받는다. 하나라도 밖으로 나가면 서버가 아무
+            # 응답도 못 내고 끊어 버린다.
+            length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length) or b"{}")
             query = payload["query"]
-        except (json.JSONDecodeError, KeyError):
+            query.strip()
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError,
+                AttributeError, UnicodeDecodeError, RecursionError):
             self._send(400, {"errors": [{"message": "본문에 query가 있어야 한다"}]})
             return
 

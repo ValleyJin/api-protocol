@@ -43,11 +43,11 @@ class SensorNotFound(SensorError):
 
 
 class SensorUnavailable(SensorError):
-    """서버에서 쓸 만한 답을 얻지 못했다. 닿지 못했거나 5xx가 돌아왔을 때, 재시도를 다 쓴 뒤에 난다."""
+    """서버에서 쓸 만한 답을 얻지 못했다. 닿지 못했거나 500 이상이 돌아왔을 때, 재시도를 다 쓴 뒤에 난다."""
 
 
 class SensorRejected(SensorError):
-    """서버가 요청을 거절했다. 404를 뺀 HTTP 4xx, 재시도로 풀리지 않는 1xx와 3xx, 그리고 2xx인데 쓸 수 없는 본문이 왔을 때다."""
+    """서버가 요청을 거절했다. 404를 뺀 HTTP 4xx, urllib이 따라가지 못한 3xx와 101부터의 1xx, 그리고 2xx인데 쓸 수 없는 본문이 왔을 때다."""
 
 
 @dataclass(frozen=True)
@@ -85,6 +85,8 @@ class SensorClient:
     """
 
     def __init__(self, base_url=DEFAULT_BASE, retries=3, timeout=3.0, trace=False):
+        if not isinstance(base_url, str):
+            raise ValueError(f"base_url 은 문자열이어야 한다 (받은 값: {base_url!r})")
         self.base_url = base_url.rstrip("/")
         self.retries = retries
         self.timeout = timeout
@@ -98,7 +100,11 @@ class SensorClient:
     def _request(self, method, path, payload=None):
         """재시도와 오류 옮기기를 여기서 한다. 바깥에서는 안 보인다."""
         url = self.base_url + path
-        body = json.dumps(payload).encode() if payload is not None else None
+        try:
+            body = json.dumps(payload).encode() if payload is not None else None
+        except (TypeError, ValueError) as exc:
+            # set() 에 숫자가 아닌 값이나 고리가 진 객체가 들어오면 여기서 난다.
+            raise SensorRejected(f"보낼 수 없는 값이다: {payload!r}"[:200]) from exc
         headers = {"User-Agent": f"sensor-sdk/{VERSION}", "Accept": "application/json"}
         if body:
             headers["Content-Type"] = "application/json"
@@ -110,14 +116,20 @@ class SensorClient:
             # 1.5나 "3" 처럼 1 이상이어도 range() 에서 터지는 값이 있어 함께 막는다.
             raise ValueError(
                 f"retries 는 1 이상인 정수여야 한다 (받은 값: {self.retries!r})")
+        if not isinstance(self.timeout, (int, float)) or isinstance(self.timeout, bool) \
+                or self.timeout <= 0:
+            raise ValueError(f"timeout 은 0보다 큰 수여야 한다 (받은 값: {self.timeout!r})")
 
         wait = 0.2
         last_error = None
         for attempt in range(1, self.retries + 1):
             self.request_count += 1
             self._log(f"{method} {url} ({attempt}/{self.retries}번째)")
-            request = urllib.request.Request(url, data=body, method=method, headers=headers)
             try:
+                # Request() 도 try 안에 둔다. base_url 이 비었거나 아스키 밖
+                # 글자가 섞이면 보내기 전에 예외가 난다.
+                request = urllib.request.Request(url, data=body,
+                                                 method=method, headers=headers)
                 with urllib.request.urlopen(request, timeout=self.timeout) as resp:
                     raw = resp.read()
                     self._log(f"{resp.status} 응답 {len(raw)}바이트")
@@ -157,13 +169,20 @@ class SensorClient:
                 if 400 <= exc.code < 500:
                     raise SensorRejected(f"서버가 거절했다 ({exc.code}): {detail}") from exc
                 last_error = exc
+            except (ValueError, UnicodeError) as exc:
+                # base_url 이 "" 나 "/" 면 ValueError, 호스트나 경로에 아스키 밖
+                # 글자가 있으면 UnicodeEncodeError 다. 다시 해도 같은 답이 온다.
+                raise SensorRejected(f"보낼 수 없는 주소다: {url!r}"[:200]) from exc
+            except http.client.InvalidURL as exc:
+                # 이것만은 요청을 보내기 전에 난다. sensor_id 에 널바이트나
+                # 줄바꿈이 섞였을 때다. 다시 해도 같다.
+                raise SensorRejected(f"URL에 쓸 수 없는 글자가 있다: {url!r}"[:200]) from exc
             except http.client.HTTPException as exc:
-                # 응답을 HTTP로 읽지 못했다. 끊긴 연결처럼 다시 하면 풀리는 것도
-                # 있고, 서버가 Content-Length 를 잘못 적었거나 HTTP가 아닌 것을
-                # 보낸 것처럼 다시 해도 같은 답이 오는 것도 있다. 여기서는
-                # 가릴 수 없어 다시 해 본다.
+                # 응답을 읽다가 났다. 끊긴 연결처럼 다시 하면 풀리는 것도 있고,
+                # 서버가 Content-Length 를 잘못 적었거나 HTTP가 아닌 것을 보낸
+                # 것처럼 다시 해도 같은 답이 오는 것도 있다. 가릴 수 없어 다시 해 본다.
                 last_error = exc
-                self._log(f"응답을 HTTP로 읽지 못했다: {exc}")
+                self._log(f"응답을 읽지 못했다: {exc}")
             except (urllib.error.URLError, OSError, TimeoutError) as exc:
                 # 닿지 못한 것은 다시 해 볼 만하다.
                 last_error = exc

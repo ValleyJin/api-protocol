@@ -68,14 +68,19 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != f"{BASE}/{SENSOR_ID}":
             self._send(404, {"error": "not found", "path": self.path})
             return
-        length = int(self.headers.get("Content-Length", 0))
         try:
+            # int() 도 try 안에 둔다. Content-Length 가 "abc" 면 여기서 난다.
+            # RecursionError 는 깊이 중첩한 JSON 에서 난다. 둘 다 밖으로 나가면
+            # 서버가 아무 응답도 못 내고 끊어 버린다.
+            length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length) or b"{}")
-            value = float(payload["temperature"])
-        except (json.JSONDecodeError, KeyError, TypeError, ValueError, OverflowError):
+            # set_value 도 try 안에 둔다. inf 나 nan 이 들어오면 여기서
+            # ValueError 가 나는데 밖으로 나가면 응답을 못 내고 끊어 버린다.
+            result = set_value(float(payload["temperature"]))
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError,
+                OverflowError, RecursionError):
             self._send(400, {"error": "본문에 temperature 값이 있어야 한다"})
             return
-        result = set_value(value)
         # 자원의 위치를 알려 준다. REST에서 자주 쓰는 방식이다.
         self._send(200, result, {"Location": f"{BASE}/{SENSOR_ID}"})
 

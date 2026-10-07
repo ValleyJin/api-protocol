@@ -47,16 +47,19 @@ def notify_all(record, verbose):
         # 재시도를 세 번 한다. 받는 쪽이 잠깐 죽어 있을 수 있다.
         # 이것이 Webhook에서 보내는 쪽이 떠안는 짐이다. REST 서버에는 없던 일이다.
         for attempt in range(1, 4):
-            request = urllib.request.Request(url, data=body, method="POST",
-                                             headers={"Content-Type": "application/json",
-                                                      "X-Event": "reading",
-                                                      "X-Attempt": str(attempt)})
             try:
+                # Request() 도 try 안에 둔다. 받는 쪽이 등록한 callback 이
+                # 주소 꼴이 아니면 여기서 ValueError 가 나고, 밖으로 나가면
+                # 알림 스레드가 죽어 아래 안내가 화면에 안 나온다.
+                request = urllib.request.Request(url, data=body, method="POST",
+                                                 headers={"Content-Type": "application/json",
+                                                          "X-Event": "reading",
+                                                          "X-Attempt": str(attempt)})
                 with urllib.request.urlopen(request, timeout=3) as resp:
                     print(f"[서비스] {url} 호출 성공 ({resp.status}, {attempt}번째 시도)",
                           flush=True)
                 break
-            except (urllib.error.URLError, OSError) as exc:
+            except (urllib.error.URLError, OSError, ValueError, UnicodeError) as exc:
                 print(f"[서비스] {url} 호출 실패 ({attempt}/3): {exc}", flush=True)
         else:
             print(f"[서비스] {url} 를 세 번 다 실패했다. 이 알림은 사라진다.", flush=True)
@@ -80,10 +83,10 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _read_json(self):
-        length = int(self.headers.get("Content-Length", 0))
         try:
+            length = int(self.headers.get("Content-Length", 0))
             return json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError, UnicodeDecodeError, RecursionError):
             return None
 
     def do_GET(self):

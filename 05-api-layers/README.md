@@ -66,8 +66,8 @@ python3 compare.py
 방식                  코드 줄     왕복 ms       본문 바이트
 소켓 API               128      0.07            8
 REST                 134      0.48           74
-SDK                  196      0.53           74
-GraphQL              192      0.94           40
+SDK                  209      0.53           74
+GraphQL              194      0.94           40
 gRPC                 169      0.20           34
 WebSocket API        282      0.10           94
 ```
