@@ -155,7 +155,7 @@ class SensorClient:
                 except (OSError, http.client.HTTPException):
                     # 상태 코드는 왔는데 본문을 다 못 읽는 응답이 있다.
                     # Content-Length 를 과장해 적었거나 본문을 보내다 끊은 경우다.
-                    # except 블록 안에서 난 예외는 위 try 가 못 덮는다.
+                    # except 블록 안에서 난 예외는 위 try 가 못 잡는다.
                     detail = "(본문을 읽지 못했다)"
                 if 400 <= exc.code < 500:
                     self._log(f"HTTP {exc.code} — 요청 쪽 문제다. 다시 하지 않는다")

@@ -32,7 +32,7 @@ def macs_from_sysfs():
 
 
 def macs_from_ifconfig():
-    """macOS와 BSD: ifconfig 출력에서 ether 줄을 긁는다."""
+    """macOS와 BSD: ifconfig 출력에서 ether 줄을 찾는다."""
     result = {}
     try:
         out = subprocess.run(["ifconfig", "-a"], capture_output=True, text=True, timeout=5).stdout

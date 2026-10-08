@@ -69,6 +69,13 @@ python3 06-encapsulation/peel.py 06-encapsulation/samples/sample.pcap
 | WebSocket 프레임 | — | 76 | 74 | 2 (핸드셰이크 282 별도) |
 | gRPC (protobuf) | — | — | 34 | JSON 70바이트보다 51% 작다 |
 
+**다섯 행이 다 같은 본문을 나른 것은 아니다.** HTTP, CoAP, WebSocket 세 행만 `04-application/common/sensor.py`의
+`encode_json`이 내놓는 74바이트 JSON을 나른다. 그 셋은 본문이 같으니 "규약이 쓴 바이트" 칸을
+그대로 견줄 수 있다. MQTT 행은 같은 파일의 `encode_compact`를 쓴다. 온도만 글자로 적어 4바이트다.
+JSON이 74바이트를 쓰는 자리에 4바이트를 쓰니 MQTT의 32는 본문이 작아서 작은 것이기도 하다.
+gRPC 행은 `05-api-layers/05-grpc-api`에서 잰 것이고, 견줄 대상이 74가 아니라 70바이트 JSON이다.
+필드 이름이 `sensor`가 아니라 `id`라 네 바이트 짧다. 그래서 34를 위 세 행의 74와 빼거나 나누면 안 된다.
+
 숫자를 곧이곧대로 읽으면 안 된다. 본문이 다르면 견줄 수 없고, 건수가 적으면 연결을 맺는 비용을 실제보다 크게 보게 된다. 어떤 조건에서 이 표의 순서가 뒤집히는지 직접 세어 보는 것이 이 교재의 실습이다. 어떻게 재고 어떻게 읽어야 하는지는 [06-encapsulation](06-encapsulation/)에 적어 두었다.
 
 ---

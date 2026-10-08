@@ -27,7 +27,7 @@ def get():
 def set_value(value: float):
     value = float(value)
     # inf 와 nan 을 막는다. 파이썬 json 은 이것을 Infinity, NaN 으로 적어 주지만
-    # JSON 명세에는 없는 값이라 다른 언어 클라이언트에서 깨진다. 한 번 들어오면
+    # JSON 스펙에는 없는 값이라 다른 언어 클라이언트에서 깨진다. 한 번 들어오면
     # 그 뒤의 모든 응답이 JSON이 아니게 되니 들어오는 자리에서 막는다.
     if not math.isfinite(value):
         raise ValueError(f"temperature 는 유한한 수여야 한다 (받은 값: {value})")

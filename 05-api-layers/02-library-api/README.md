@@ -20,6 +20,11 @@ python3 client.py
 ```
 
 `client.py` 하나가 위 표의 세 계층을 차례로 부른다.
+서버가 이미 떠 있으면 `OSError: [Errno 48] Address already in use`가 난다. `05-api-layers`의
+`02-library-api`와 이 폴더가 둘 다 같은 서버(`03-rest-api/server.py`, 포트 9200)를 쓰기 때문이다.
+교재를 순서대로 밟으면 둘째 폴더에서 그 오류를 보게 된다. 그때는 서버를 새로 띄우지 말고 이미 떠
+있는 것을 그대로 쓴다. 내리려면 `pkill -f 03-rest-api/server.py`를 쓴다.
+
 
 ## 실제로 재어 본 값
 

@@ -95,7 +95,7 @@ def main():
             print("=" * 66)
             print(f"  HTTP 요청 {client.request_count}번")
             print("  쓰는 쪽 코드에는 요청이라는 말이 한 번도 안 나왔다.")
-            print("  이것이 SDK의 값이자 대가다. 편하지만 무슨 일이 나는지 안 보인다.")
+            print("  SDK가 주는 것이 이것이고 치르는 값도 이것이다. 편하지만 무슨 일이 나는지 안 보인다.")
             print("  느려질 때 SDK 안을 열지 않고는 까닭을 알 수 없다. --trace 가 그래서 있다.")
         except SensorUnavailable as exc:
             print(f"\n서버에 닿지 못했다: {exc}", file=sys.stderr)

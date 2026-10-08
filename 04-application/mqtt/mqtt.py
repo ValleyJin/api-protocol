@@ -73,7 +73,7 @@ def decode_varint(data, offset=0):
             return value, offset
         multiplier *= 128
         # 이 자리는 "뒤에 더 있다" 표시를 이미 확인한 뒤다. 네 바이트를 읽고도
-        # 표시가 서 있으면 명세를 넘은 것이니 다섯째 바이트를 읽기 전에 거른다.
+        # 표시가 서 있으면 스펙을 넘은 것이니 다섯째 바이트를 읽기 전에 거른다.
         if count >= 4:
             raise ValueError("남은 길이가 4바이트를 넘는다")
 
