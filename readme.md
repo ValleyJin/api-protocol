@@ -71,7 +71,7 @@ python3 06-encapsulation/peel.py 06-encapsulation/samples/sample.pcap
 
 **다섯 행이 다 같은 본문을 나른 것은 아니다.** HTTP, CoAP, WebSocket 세 행만 `04-application/common/sensor.py`의
 `encode_json`이 내놓는 74바이트 JSON을 나른다. 그 셋은 본문이 같으니 "규약이 쓴 바이트" 칸을
-그대로 견줄 수 있다. MQTT 행은 같은 파일의 `encode_compact`를 쓴다. 온도만 글자로 적어 4바이트다.
+그대로 견줄 수 있다. MQTT 행은 같은 파일의 `encode_compact`를 쓴다. 온도를 글자로만 적는다. `reading()`이 18.0에서 26.0 사이를 뽑으니 이 표에서는 4바이트인데, 값에 매달린 길이다. `0.0`이면 3바이트, `100.0`이면 5바이트, `-100.0`이면 6바이트다.
 JSON이 74바이트를 쓰는 자리에 4바이트를 쓰니 MQTT의 32는 본문이 작아서 작은 것이기도 하다.
 gRPC 행은 `05-api-layers/05-grpc-api`에서 잰 것이고, 견줄 대상이 74가 아니라 70바이트 JSON이다.
 필드 이름이 `sensor`가 아니라 `id`라 네 바이트 짧다. 그래서 34를 위 세 행의 74와 빼거나 나누면 안 된다.

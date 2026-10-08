@@ -277,7 +277,7 @@ def measure_throughput(tcp_port, udp_port, count):
         "TCP": f"{count}회 왕복 {tcp_sec * 1000:.0f}ms, 초당 {count / tcp_sec:.0f}회",
         "UDP": f"{done}회 왕복 {udp_sec * 1000:.0f}ms, 초당 {done / udp_sec:.0f}회",
         "뜻": "돌릴 때마다 흔들려 둘을 견줄 수 없다. 여기서 순위를 읽지 마라. "
-              "차이는 속도가 아니라 보장에서 온다",
+              "차이는 속도가 아니라 보장 때문이다",
     }
 
 
