@@ -148,7 +148,9 @@ class Handler(BaseHTTPRequestHandler):
             # 응답도 못 내고 끊어 버린다.
             payload = json.loads(self._read_body())
             query = payload["query"]
-            query.strip()
+            if not isinstance(query, str):
+                # query 가 숫자나 배열이면 아래 정규식이 터진다. 여기서 막는다.
+                raise TypeError("query 는 문자열이어야 한다")
             if len(query) > 2048:
                 # parse_selection 의 정규식이 뒤에 } 가 없으면 O(n^2)로 돈다.
                 # 32KB 질의 하나가 19초를 먹고, C 정규식이 GIL을 쥐어 그동안

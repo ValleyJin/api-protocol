@@ -67,7 +67,7 @@ python3 compare.py
 소켓 API               128      0.07            8
 REST                 142      0.48           74
 SDK                  212      0.53           74
-GraphQL              204      0.94           40
+GraphQL              205      0.94           40
 gRPC                 169      0.20           34
 WebSocket API        285      0.10           94
 ```
