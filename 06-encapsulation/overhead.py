@@ -75,7 +75,7 @@ def main():
         print(exc, file=sys.stderr)
         return 1
 
-    # 방향마다 스트림을 따로 모은다. 요청과 응답을 한 바구니에 담으면 파싱이 깨진다.
+    # 방향마다 스트림을 따로 모은다. 요청과 응답을 한 바구니에 담으면 요청과 응답이 섞여 엉뚱하게 읽힌다.
     flows = defaultdict(lambda: {"frames": 0, "link": 0, "ip": 0, "tcp": 0, "app": 0,
                                  "c2s": b"", "s2c": b"", "total": 0})
     # 프레임마다 머리글 합을 따로 재어 둔다. 1층과 2층이 늘 14, 20인 캡처만 보면

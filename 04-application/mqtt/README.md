@@ -112,7 +112,7 @@ python3 subscriber.py --persist --qos 1            # 다시 붙으면 24.0이 �
 
 3번을 돌리면 구독자 출력에 `SUBACK보다 먼저 왔다`가 뜬다. 세션을 되살리면 브로커가 쌓아 둔 PUBLISH를 CONNACK 바로 뒤에 몰아 보내기 때문이다.
 
-"보낸 순서대로 답이 온다"고 여기고 짜면 여기서 깨진다. `subscriber.py`의 `Connection.next_packet()`처럼 종류를 보고 갈라 처리해야 한다.
+"보낸 순서대로 답이 온다"고 여기고 짜면 여기서 어긋난다. `subscriber.py`의 `Connection.next_packet()`처럼 종류를 보고 갈라 처리해야 한다.
 
 ### 5. 캡처를 떠서 바이트를 센다
 
@@ -154,6 +154,6 @@ PUBACK        4바이트
 |---|---|
 | retain 값이 안 온다 | 발행할 때 `--retain`을 안 켰다 |
 | 쌓아 둔 값이 안 온다 | 위 3번 표의 네 조건 가운데 하나가 빠졌다 |
-| 구독자가 SUBACK에서 깨진다 | PUBLISH가 먼저 왔다. 패킷 종류로 갈라야 한다 |
+| 구독자가 SUBACK을 못 읽는다 | PUBLISH가 먼저 왔다. 패킷 종류로 갈라야 한다 |
 | 브로커가 연결을 바로 끊는다 | CONNECT 없이 다른 패킷을 먼저 보냈다 |
 | QoS 2로 발행했는데 멈춘다 | 이 브로커가 PUBREC을 주지 않는다. QoS 0이나 1을 쓴다 |

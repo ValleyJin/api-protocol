@@ -19,7 +19,7 @@ retain과 clean session을 눈으로 확인하는 것이 이 파일의 목적이
 
 여기서 한 가지 함정이 드러난다. 세션을 되살리면 브로커가 CONNACK 바로 뒤에
 쌓아 둔 PUBLISH를 몰아 보낸다. 그래서 SUBACK보다 PUBLISH가 먼저 도착할 수 있다.
-"보낸 순서대로 답이 온다"고 여기고 짜면 여기서 깨진다. 아래 next_packet()처럼
+"보낸 순서대로 답이 온다"고 여기고 짜면 여기서 어긋난다. 아래 next_packet()처럼
 종류를 보고 갈라 처리해야 한다.
 
     python3 subscriber.py
