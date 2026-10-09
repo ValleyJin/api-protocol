@@ -6,7 +6,7 @@
 
 MAC 주소를 표준 라이브러리만으로 뽑는 방법은 운영체제마다 다르다. 리눅스는
 /sys/class/net/<이름>/address 파일을 읽으면 되고, macOS는 그런 파일이 없어
-ifconfig 출력을 읽는다. 두 길을 다 적어 두었다.
+ifconfig 출력을 읽는다. 두 방법을 다 적어 두었다.
 
     python3 list_interfaces.py
 """

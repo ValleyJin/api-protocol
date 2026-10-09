@@ -289,12 +289,13 @@ def main():
     ap.add_argument("--count", type=int, default=2000, help="유실 실험에 몰아 보낼 건수 (기본 2000)")
     ap.add_argument("--rounds", type=int, default=200, help="처리량 실험 왕복 횟수 (기본 200)")
     ap.add_argument("--rcvbuf", type=int, default=2048,
-                    help="유실 실험에서 받는 쪽 SO_RCVBUF (기본 2048). 바꿔 가며 건수를 세면 "
+                    help="유실 실험(4번 절)에서 받는 쪽 SO_RCVBUF (기본 2048). 바꿔 가며 건수를 세면 "
                          "한 건이 먹는 자리가 보인다")
     ap.add_argument("--payload", type=int, default=200,
-                    help="유실 실험 본문 크기 (기본 200). 데이터그램은 여기에 순번 4바이트를 더한 값이다")
+                    help="유실 실험(4번 절) 본문 크기 (기본 200). 데이터그램은 여기에 순번 4바이트를 더한 값이다")
     ap.add_argument("--ipv6", action="store_true",
-                    help="::1 로 돌린다. 주소 몫이 커져 한 건이 먹는 자리가 달라진다")
+                    help="유실 실험만 ::1 로 돌린다(4번 절). 주소 몫이 커져 한 건이 먹는 "
+                         "자리가 달라진다. 나머지 네 절은 127.0.0.1 그대로다")
     args = ap.parse_args()
 
     # 서버 둘을 띄운다
