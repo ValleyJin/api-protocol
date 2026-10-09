@@ -57,12 +57,15 @@ def handle(data, addr, sock, drop_ack, verbose):
         reply = coap.encode(reply_type, coap.CODE_CONTENT, msg["mid"], msg["token"],
                             [(coap.OPT_CONTENT_FORMAT, coap.CONTENT_JSON)], body)
     elif msg["code"] == coap.CODE_PUT:
+        # float() 은 "inf" 와 "nan" 도 받아들인다. 그것까지 걸러야 응답이 JSON 으로 남는다.
+        # reading() 이 유한하지 않은 값에 ValueError 를 내므로 함께 잡는다.
         try:
             value = float(msg["payload"].decode().strip() or 0)
+            record = reading(value)
         except ValueError:
             reply = coap.encode(reply_type, coap.CODE_BAD_REQUEST, msg["mid"], msg["token"])
         else:
-            STATE["latest"] = reading(value)
+            STATE["latest"] = record
             print(f"[서버] 값을 올렸다: {value}C")
             reply = coap.encode(reply_type, coap.CODE_CHANGED, msg["mid"], msg["token"])
     else:

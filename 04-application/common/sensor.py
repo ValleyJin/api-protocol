@@ -11,6 +11,7 @@ DNS는 이 과제에서 뺀다. 이름을 푸는 프로토콜이라 값을 올�
 """
 
 import json
+import math
 import random
 import time
 
@@ -20,7 +21,16 @@ PATH = "/sensors/living-room/temperature"  # HTTP와 CoAP가 쓰는 경로
 
 
 def reading(value=None, sensor=SENSOR_ID):
-    """센서 값 한 건을 만든다. 값을 주지 않으면 그럴듯한 값을 지어낸다."""
+    """센서 값 한 건을 만든다. 값을 주지 않으면 그럴듯한 값을 지어낸다.
+
+    value 가 inf 나 nan 이면 ValueError 를 낸다. 파이썬 json 은 그것을
+    Infinity, NaN 으로 적어 주지만 JSON 스펙(RFC 8259)에는 없는 값이라
+    다른 언어 클라이언트가 읽지 못한다. 한 번 들어오면 그 뒤의 모든 응답이
+    JSON 이 아니게 되니 값을 만드는 이 자리에서 막는다. 네 폴더가 이 함수를
+    함께 쓰므로 여기 한 번 적어 두면 네 서버가 다 막힌다.
+    """
+    if value is not None and not math.isfinite(float(value)):
+        raise ValueError(f"temperature 는 유한한 수여야 한다 (받은 값: {value})")
     return {
         "sensor": sensor,
         "temperature": round(value if value is not None else random.uniform(18.0, 26.0), 1),

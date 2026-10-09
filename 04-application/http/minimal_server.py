@@ -106,9 +106,17 @@ def handle(conn, addr, verbose):
             except json.JSONDecodeError:
                 conn.sendall(build_response(400, b'{"error":"body is not JSON"}'))
                 return
-            with LOCK:
-                STATE["latest"] = reading(float(incoming.get("temperature", 0)))
-                payload = encode_json(STATE["latest"])
+            # float() 이 터지면 응답을 아예 못 내고 연결이 끊긴다. 받는 자리에서 막는다.
+            # inf 와 nan 은 reading() 이 ValueError 로 돌려준다.
+            try:
+                value = float(incoming.get("temperature", 0))
+                with LOCK:
+                    STATE["latest"] = reading(value)
+                    payload = encode_json(STATE["latest"])
+            except (TypeError, ValueError) as exc:
+                body = json.dumps({"error": str(exc)}, ensure_ascii=False).encode()
+                conn.sendall(build_response(400, body))
+                return
             print(f"[서버] 값을 올렸다: {STATE['latest']['temperature']}C")
             conn.sendall(build_response(201, payload))
         else:
