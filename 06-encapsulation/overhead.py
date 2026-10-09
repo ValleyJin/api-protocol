@@ -67,7 +67,13 @@ def http_body_bytes(stream):
 def main():
     ap = argparse.ArgumentParser(description="계층별 오버헤드를 센다")
     ap.add_argument("pcap")
+    ap.add_argument("--snaplen", type=int, default=None, metavar="N",
+                    help="프레임을 N바이트까지만 읽어 스냅 길이를 걸고 잡은 것처럼 본다. "
+                         "원래 길이는 그대로 두니 아래 '잡힌 길이가 짧다' 경고가 그대로 나온다")
     args = ap.parse_args()
+    if args.snaplen is not None and args.snaplen < 1:
+        print("--snaplen 은 1 이상이어야 한다", file=sys.stderr)
+        return 1
 
     try:
         f = PcapFile(args.pcap)
@@ -101,6 +107,10 @@ def main():
         print()
 
         for ts, data, orig_len in f:
+            # --snaplen 은 캡처할 때 스냅을 건 것을 흉내 낸다. 읽는 쪽에서 자르면
+            # 프로그램이 보는 바이트가 같아지므로 표의 비율을 그대로 되풀이할 수 있다.
+            if args.snaplen is not None:
+                data = data[:args.snaplen]
             link_len, ip_pkt, ethertype = strip_link_header(f.linktype_name, data)
             if ethertype != 0x0800 or len(ip_pkt) < 20 or ip_pkt[9] != 6:
                 skipped += 1          # IPv4 위의 TCP가 아니다
@@ -241,7 +251,8 @@ def main():
         print(f"  이 캡처의 {truncated}프레임은 잡힌 길이가 원래 길이보다 짧다.")
         print("  스냅 길이를 걸고 잡은 것이니 4층과 합계가 그만큼 작게 나온다.")
         print("  **앱 비율은 믿을 수 없다.** 머리글은 안 잘리고 4층만 잘리니 분자만 줄고")
-        print("  분모는 머리글만큼 남는다. samples/sample.pcap 을 잘라 가며 돌리면 이렇게 된다.")
+        print("  분모는 머리글만큼 남는다. 같은 캡처에 --snaplen 을 걸어 가며 돌리면 이렇게 된다.")
+        print("    python3 overhead.py samples/sample.pcap --snaplen 200")
         print("    스냅 없음  HTTP 40.9%  MQTT 20.4%")
         print("    200바이트  HTTP 35.8%  MQTT 20.4%")
         print("     80바이트  HTTP  5.6%  MQTT 10.1%")

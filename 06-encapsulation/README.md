@@ -37,7 +37,7 @@
 | 파일 | 하는 일 |
 |---|---|
 | `peel.py` | 패킷 한 개를 계층별로 벗겨 낸다 |
-| `overhead.py` | 캡처 전체를 훑어 계층별 오버헤드를 세고 프로토콜을 견준다 |
+| `overhead.py` | 캡처 전체를 훑어 계층별 오버헤드를 세고 프로토콜을 견준다. `--snaplen N` 으로 스냅 길이를 걸고 잡은 것처럼 볼 수 있다 |
 | `samples/sample.pcap` | 실습용 표본(지어낸 캡처다. 아래를 읽는다) |
 
 ## 표본 캡처에 관한 경고
@@ -69,6 +69,7 @@ python3 peel.py samples/sample.pcap -n 5 --hex
 
 ```
 python3 overhead.py samples/sample.pcap
+python3 overhead.py samples/sample.pcap --snaplen 200   # 스냅 길이를 걸고 잡은 것처럼 본다
 ```
 
 표본 캡처로 돌리면 이렇게 나온다.
