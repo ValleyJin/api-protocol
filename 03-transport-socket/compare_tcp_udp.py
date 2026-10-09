@@ -170,22 +170,25 @@ def measure_order(tcp_port, udp_port, count):
 
 
 # ── 4. 유실 ──────────────────────────────────────────────────────────
-def measure_loss(count, payload_size=200):
+def measure_loss(count, payload_size=200, rcvbuf=2048, ipv6=False):
     """받는 쪽 버퍼를 작게 줄이고 몰아 보내 무슨 일이 생기는지 본다.
 
     루프백은 선이 깨끗해서 저절로는 유실이 안 난다. 그래서 커널 버퍼를
     일부러 좁혀 넘치게 만든다. 실제 망에서 혼잡이 났을 때와 같은 일이다.
     """
     body = b"x" * payload_size
+    # IPv6 로 바꾸면 커널이 떼는 주소 몫이 달라져 한 건이 먹는 자리가 커진다.
+    fam = socket.AF_INET6 if ipv6 else socket.AF_INET
+    host = "::1" if ipv6 else "127.0.0.1"
 
     # UDP: 버퍼가 넘치면 커널이 그냥 버린다. 아무도 모른다.
-    r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    r.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2048)
-    r.bind(("127.0.0.1", 0))
+    r = socket.socket(fam, socket.SOCK_DGRAM)
+    r.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rcvbuf)
+    r.bind((host, 0))
     udp_port = r.getsockname()[1]
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(fam, socket.SOCK_DGRAM)
     for i in range(count):
-        s.sendto(struct.pack("!I", i) + body, ("127.0.0.1", udp_port))
+        s.sendto(struct.pack("!I", i) + body, (host, udp_port))
     s.close()
     time.sleep(0.3)
     r.setblocking(False)
@@ -203,17 +206,17 @@ def measure_loss(count, payload_size=200):
     # 여기서 운영체제가 끼어든다. listener에 SO_RCVBUF를 2048로 걸어도 macOS는
     # accept된 소켓의 수신 버퍼를 제 판단으로 키운다(이 기기에서 326640바이트).
     # 그래서 보내는 쪽의 SO_SNDBUF도 함께 줄여야 금세 꽉 찬다.
-    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener = socket.socket(fam, socket.SOCK_STREAM)
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listener.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2048)
-    listener.bind(("127.0.0.1", 0))
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rcvbuf)
+    listener.bind((host, 0))
     tcp_port = listener.getsockname()[1]
     listener.listen(1)
 
-    sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
+    sender = socket.socket(fam, socket.SOCK_STREAM)
+    sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, rcvbuf)
     sender.settimeout(5)
-    sender.connect(("127.0.0.1", tcp_port))
+    sender.connect((host, tcp_port))
     conn, _ = listener.accept()           # 받아 두고 읽지는 않는다
     recv_buf = conn.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
 
@@ -285,6 +288,13 @@ def main():
     ap = argparse.ArgumentParser(description="TCP와 UDP를 나란히 재어 견준다")
     ap.add_argument("--count", type=int, default=2000, help="유실 실험에 몰아 보낼 건수 (기본 2000)")
     ap.add_argument("--rounds", type=int, default=200, help="처리량 실험 왕복 횟수 (기본 200)")
+    ap.add_argument("--rcvbuf", type=int, default=2048,
+                    help="유실 실험에서 받는 쪽 SO_RCVBUF (기본 2048). 바꿔 가며 건수를 세면 "
+                         "한 건이 먹는 자리가 보인다")
+    ap.add_argument("--payload", type=int, default=200,
+                    help="유실 실험 본문 크기 (기본 200). 데이터그램은 여기에 순번 4바이트를 더한 값이다")
+    ap.add_argument("--ipv6", action="store_true",
+                    help="::1 로 돌린다. 주소 몫이 커져 한 건이 먹는 자리가 달라진다")
     args = ap.parse_args()
 
     # 서버 둘을 띄운다
@@ -310,7 +320,7 @@ def main():
         ("1. 연결 비용", lambda: measure_connect_cost(tcp_port, udp_port)),
         ("2. 메시지 경계", lambda: measure_boundary(tcp_port, udp_port)),
         ("3. 순서", lambda: measure_order(tcp_port, udp_port, 50)),
-        ("4. 유실", lambda: measure_loss(args.count)),
+        ("4. 유실", lambda: measure_loss(args.count, args.payload, args.rcvbuf, args.ipv6)),
         ("5. 처리량", lambda: measure_throughput(tcp_port, udp_port, args.rounds)),
     ]
 
