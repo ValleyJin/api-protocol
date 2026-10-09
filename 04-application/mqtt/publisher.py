@@ -36,6 +36,15 @@ def main():
     ap.add_argument("--interval", type=float, default=1.0)
     args = ap.parse_args()
 
+    # 값을 먼저 본다. inf 와 nan 은 reading() 이 ValueError 로 돌려준다.
+    # 붙은 뒤에 터지면 traceback 만 남고 연결도 그대로 끊긴다.
+    if args.value is not None:
+        try:
+            reading(args.value)
+        except ValueError as exc:
+            print(f"올릴 값이 잘못됐다: {exc}", file=sys.stderr)
+            return 2
+
     try:
         sock = socket.create_connection((args.host, args.port), timeout=5)
     except OSError as exc:
