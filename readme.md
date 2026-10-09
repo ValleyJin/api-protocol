@@ -124,6 +124,9 @@ python3 06-encapsulation/peel.py 06-encapsulation/samples/sample.pcap
 `temperature`와 `ts` 두 필드를 두고 하는 말이지 메시지 전체를 두고 하는 말이 아니다. 자세한 것은
 [05-api-layers/05-grpc-api](05-api-layers/05-grpc-api/)에 적어 두었다.
 
+이 표가 지금도 맞는지는 `python3 tools/check_bytes.py` 로 확인한다. 서버를 띄워 재서 위 표와
+맞댄다. 표를 고치면 검사가 따라온다. 기대값을 이 표에서 읽어 오기 때문이다.
+
 숫자를 곧이곧대로 읽으면 안 된다. 본문이 다르면 견줄 수 없고, 건수가 적으면 연결을 맺는 비용을 실제보다 크게 보게 된다. 어떤 조건에서 이 표의 순서가 뒤집히는지 직접 세어 보는 것이 이 교재의 실습이다. 어떻게 재고 어떻게 읽어야 하는지는 [06-encapsulation](06-encapsulation/)에 적어 두었다.
 
 ---
