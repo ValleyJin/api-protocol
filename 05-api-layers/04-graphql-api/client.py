@@ -71,7 +71,7 @@ def main():
             query = f'mutation {{ setTemperature(id:"living-room", value:{float(args.value)}) {{ temperature ts }} }}'
             show("set", args.host, args.port, query)
             print()
-            print("  뮤테이션도 같은 엔드포인트에 POST로 보낸다. REST라면 PUT이었을 자리다.")
+            print("  뮤테이션도 같은 엔드포인트에 POST로 보낸다. REST라면 PUT으로 보냈을 것이다.")
             return 0
 
         # compare

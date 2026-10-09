@@ -66,7 +66,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
-        # REST에서 흔히 쓰는 헤더들. 캐시와 동시성 제어를 HTTP에 맡기는 자리다.
+        # REST에서 흔히 쓰는 헤더들. 여기서 캐시와 동시성 제어를 HTTP에 맡긴다.
         self.send_header("Cache-Control", "no-cache")
         for key, value in (extra_headers or {}).items():
             self.send_header(key, value)
